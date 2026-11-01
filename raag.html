@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>raag · pause a little</title>
+<meta name="description" content="A slow, quiet room for Indian classical music: raga-clock colors, a soft diya glow and an optional tanpura drone.">
+<meta name="theme-color" content="#241621">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="raag">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='g' cx='50%25' cy='60%25'%3E%3Cstop offset='0' stop-color='%23ffd9a0'/%3E%3Cstop offset='.6' stop-color='%23d98a4a'/%3E%3Cstop offset='1' stop-color='%236b2f3a'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='28' fill='url(%23g)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@300;400;500&family=Noto+Serif+Devanagari:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: rgba(246,232,220,.88);
+    --ink-soft: rgba(246,232,220,.58);
+    --accent: #e0a45a;
+    --glass: rgba(255,255,255,.07);
+    --glass-strong: rgba(255,255,255,.14);
+    --glass-border: rgba(255,255,255,.13);
+    --sheet: rgba(30,20,28,.82);
+    --track: rgba(246,232,220,.16);
+    --bg: #241621;
+    --ease: cubic-bezier(.4,0,.2,1);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+    overflow:hidden;min-height:100dvh;-webkit-font-smoothing:antialiased;
+    transition:color 4s var(--ease),background-color 4s var(--ease);
+    user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+  }
+  input{user-select:text;-webkit-user-select:text}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  #bg{z-index:0}
+  #fx{z-index:2;pointer-events:none}
+  .grain{position:fixed;inset:-50%;z-index:1;pointer-events:none;opacity:.08;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  /* Mandala */
+  .mandala{position:fixed;z-index:1;left:50%;top:46%;width:min(96vmin,820px);aspect-ratio:1;transform:translate(-50%,-50%);
+    color:var(--accent);opacity:.11;pointer-events:none;transition:color 6s var(--ease),opacity 6s var(--ease)}
+  body.light .mandala{opacity:.16}
+  .mandala svg{width:100%;height:100%;overflow:visible}
+  .mandala .spin-a{transform-box:view-box;transform-origin:50% 50%;animation:spin 1500s linear infinite}
+  .mandala .spin-b{transform-box:view-box;transform-origin:50% 50%;animation:spin 2400s linear infinite reverse}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  button{font:inherit;color:inherit;cursor:pointer;border:none;background:none;padding:0}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--ink-soft);outline-offset:3px}
+  .glass{background:var(--glass);border:1px solid var(--glass-border);
+    -webkit-backdrop-filter:blur(16px) saturate(1.15);backdrop-filter:blur(16px) saturate(1.15)}
+  .icon-btn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none;transition:background .3s var(--ease),transform .3s var(--ease),color .3s}
+  .icon-btn:hover{background:var(--glass-strong)}
+  .icon-btn:active,.play:active{transform:scale(.94)}
+  .icon-btn svg{width:18px;height:18px}
+  .icon-btn.on{background:var(--ink);color:var(--bg)}
+
+  /* Top */
+  .top{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:max(18px,env(safe-area-inset-top)) 16px 0}
+  .back{display:flex;align-items:center;gap:10px;font-family:Fraunces,Georgia,serif;font-weight:300;font-size:19px;color:var(--ink);text-decoration:none;opacity:.92}
+  .back .dot{width:11px;height:11px;border-radius:50%;background:var(--accent);opacity:.7;animation:breathe 9s ease-in-out infinite}
+  .back i{font-style:italic;color:var(--ink-soft)}
+  .back .arrow{font-family:Inter,sans-serif;font-size:14px;color:var(--ink-soft);margin-right:-2px}
+  @keyframes breathe{0%,100%{transform:scale(.75);opacity:.4}50%{transform:scale(1.1);opacity:.85}}
+  .top-actions{display:flex;gap:8px}
+  @media (max-width:420px){.back .word{display:none}}
+
+  /* Stage */
+  .stage{position:fixed;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    padding:90px 24px 150px;pointer-events:none}
+  .p-hi{font-family:"Noto Serif Devanagari",Fraunces,serif;font-weight:300;font-size:clamp(58px,10vw,112px);line-height:1.15;letter-spacing:.01em;
+    transition:opacity 3s var(--ease)}
+  .orn{display:flex;align-items:center;gap:10px;margin:14px 0 14px;color:var(--accent);opacity:.75}
+  .orn span{width:46px;height:1px;background:currentColor;opacity:.6}
+  .orn svg{width:14px;height:14px}
+  .p-en{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);line-height:1.8;max-width:90vw}
+  .now{margin-top:26px;font-family:Fraunces,Georgia,serif;font-style:italic;font-weight:300;font-size:clamp(16px,2vw,20px);color:var(--ink);
+    min-height:1.5em;opacity:0;transition:opacity 2s var(--ease);max-width:min(560px,88vw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .now.show{opacity:.85}
+  .stage .fadeable{transition:opacity 2s var(--ease)}
+
+  /* YouTube card */
+  .yt{position:fixed;z-index:6;right:24px;bottom:118px;width:248px;height:200px;border-radius:18px;overflow:hidden;display:none;
+    box-shadow:0 18px 50px rgba(0,0,0,.25);border:1px solid var(--glass-border);background:#000}
+  .yt.on{display:block}
+  .yt #ytFrame,.yt iframe{width:100%;height:100%;border:0;display:block}
+  @media (max-width:700px){
+    .yt{left:50%;right:auto;transform:translateX(-50%);bottom:106px}
+    body.yt-on .stage{padding-bottom:330px}
+  }
+
+  /* Dock */
+  .dock{position:fixed;z-index:5;left:50%;bottom:max(16px,env(safe-area-inset-bottom));transform:translateX(-50%);
+    width:min(640px,calc(100vw - 24px));display:flex;align-items:center;gap:8px;padding:8px 10px 8px 8px;border-radius:999px;
+    transition:opacity 1.4s var(--ease)}
+  .ringwrap{position:relative;width:58px;height:58px;flex:none;display:grid;place-items:center;border-radius:50%}
+  .ringwrap svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+  .ringwrap circle{fill:none;stroke-width:2}
+  .ringwrap .track{stroke:var(--track)}
+  .ringwrap .progress{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .4s linear}
+  .ringwrap .t{font-family:Fraunces,Georgia,serif;font-weight:300;font-size:14px;font-variant-numeric:tabular-nums}
+  .play{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--ink);color:var(--bg);transition:transform .3s var(--ease),background .6s}
+  .play svg{width:20px;height:20px}
+  .play .i-pause,body.playing .play .i-play{display:none}
+  body.playing .play .i-pause{display:block}
+  .meta{flex:1;min-width:0;padding:0 6px}
+  .meta b{display:block;font-weight:400;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .meta span{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  @media (max-width:520px){#prevBtn{display:none}}
+  body.zen .dock{opacity:.35}
+  body.zen .top{opacity:0;pointer-events:none}
+  .top{transition:opacity 1.4s var(--ease)}
+  body.zen{cursor:none}
+
+  .toast{position:fixed;z-index:20;left:50%;top:max(76px,calc(env(safe-area-inset-top) + 66px));transform:translateX(-50%);padding:9px 16px;border-radius:999px;
+    font-size:13px;opacity:0;pointer-events:none;transition:opacity .6s var(--ease);white-space:nowrap}
+  .toast.show{opacity:1}
+
+  /* Sheet */
+  .backdrop{position:fixed;inset:0;z-index:9;background:rgba(0,0,0,.18);opacity:0;pointer-events:none;transition:opacity .4s var(--ease)}
+  .sheet{position:fixed;z-index:10;left:50%;bottom:max(12px,env(safe-area-inset-bottom));width:min(560px,calc(100vw - 24px));
+    max-height:min(82dvh,760px);overflow:auto;overscroll-behavior:contain;transform:translate(-50%,24px);opacity:0;pointer-events:none;
+    transition:transform .45s var(--ease),opacity .45s var(--ease);background:var(--sheet);border:1px solid var(--glass-border);border-radius:24px;padding:20px 18px 18px;
+    -webkit-backdrop-filter:blur(26px) saturate(1.2);backdrop-filter:blur(26px) saturate(1.2);box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  body.sheet-open .sheet{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+  body.sheet-open .backdrop{opacity:1;pointer-events:auto}
+  .sheet-head{display:flex;justify-content:space-between;align-items:center}
+  .sheet h2{margin:0;font-family:Fraunces,Georgia,serif;font-weight:400;font-size:22px}
+  .sheet h3{margin:22px 2px 10px;font-size:11.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)}
+  .list{display:flex;flex-direction:column;gap:6px}
+  .item{display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;border-radius:14px;background:var(--glass);border:1px solid var(--glass-border);text-align:left;width:100%;transition:background .3s}
+  .item:hover{background:var(--glass-strong)}
+  .item.cur{border-color:var(--accent)}
+  .item .tt{flex:1;min-width:0}
+  .item .tt b{display:block;font-weight:400;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .tt span{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+  .item .x{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--ink-soft)}
+  .item .x:hover{background:var(--glass-strong);color:var(--ink)}
+  .item .x svg{width:14px;height:14px}
+  .eq{width:14px;height:14px;display:flex;align-items:flex-end;gap:2px;flex:none}
+  .eq i{flex:1;background:var(--accent);height:30%;border-radius:1px}
+  body.playing .item.cur .eq i{animation:eq 1.6s ease-in-out infinite}
+  .item.cur .eq i:nth-child(2){animation-delay:-.5s}
+  .item.cur .eq i:nth-child(3){animation-delay:-1s}
+  @keyframes eq{0%,100%{height:25%}50%{height:95%}}
+  .item:not(.cur) .eq{opacity:0}
+  .empty{font-size:13px;color:var(--ink-soft);padding:6px 2px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .chip{height:34px;min-width:44px;padding:0 14px;border-radius:999px;font-size:13px;transition:background .3s,color .3s}
+  .chip:hover{background:var(--glass-strong)}
+  .chip.on{background:var(--ink);color:var(--bg);border-color:transparent}
+  .seg{display:flex;padding:3px;border-radius:999px;background:var(--glass);border:1px solid var(--glass-border)}
+  .seg button{flex:1;height:34px;border-radius:999px;font-size:13px;transition:background .3s,color .3s}
+  .seg button.on{background:var(--ink);color:var(--bg)}
+  .field{width:100%;font:inherit;font-size:14px;color:var(--ink);background:var(--glass);border:1px solid var(--glass-border);border-radius:14px;padding:10px 12px;outline:none}
+  .field::placeholder{color:var(--ink-soft)}
+  .add{display:grid;grid-template-columns:1fr;gap:8px}
+  .add .row{flex-wrap:nowrap}
+  .add .row .field{flex:1;min-width:0}
+  select.field{appearance:none;-webkit-appearance:none;cursor:pointer;width:auto;padding-right:28px;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+    background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;background-size:5px 5px;background-repeat:no-repeat}
+  select.field option{color:#222}
+  .btn{height:40px;padding:0 18px;border-radius:999px;background:var(--ink);color:var(--bg);font-size:13px;flex:none}
+  .ghost{height:40px;padding:0 16px;border-radius:999px;font-size:13px;display:inline-flex;align-items:center;gap:8px}
+  .ghost svg{width:16px;height:16px}
+  .slider{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--ink-soft);margin-top:10px}
+  .slider span{width:64px}
+  input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:3px;border-radius:3px;background:var(--track);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--ink);cursor:pointer;border:none}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--ink);cursor:pointer;border:none}
+  .note{margin:8px 2px 0;font-size:11.5px;line-height:1.5;color:var(--ink-soft)}
+  .note code{font-size:11px;padding:1px 5px;border-radius:5px;background:var(--glass)}
+  @media (prefers-reduced-motion:reduce){.mandala .spin-a,.mandala .spin-b,.back .dot{animation:none}}
+</style>
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
+<div class="mandala" id="mandala" aria-hidden="true"></div>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<header class="top">
+  <a class="back" id="backLink" href="./#timer" title="Back to the timer"><span class="arrow">←</span><span class="dot"></span><span class="word">pause <i>a little</i></span></a>
+  <div class="top-actions">
+    <button id="themeBtn" class="icon-btn glass" title="Theme: auto / day / night (T)" aria-label="Change theme">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+    </button>
+    <button id="fsBtn" class="icon-btn glass" title="Fullscreen (F)" aria-label="Toggle fullscreen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
+  </div>
+</header>
+
+<section class="stage">
+  <div class="p-hi" id="pHi">संध्या</div>
+  <div class="orn" aria-hidden="true"><span></span>
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c1.6 2.2 2.4 4.4 2.4 6.4 0 1.6-.8 2.9-2.4 3.8-1.6-.9-2.4-2.2-2.4-3.8C9.6 7.4 10.4 5.2 12 3zM4 10c2.5.2 4.6 1 6.2 2.6.9.9 1.5 2 1.8 3.4-1.6.4-3 .3-4.3-.4C6 14.7 4.8 12.8 4 10zm16 0c-.8 2.8-2 4.7-3.7 5.6-1.3.7-2.7.8-4.3.4.3-1.4.9-2.5 1.8-3.4C15.4 11 17.5 10.2 20 10zM6 18.5h12c-1.5 1.6-3.5 2.5-6 2.5s-4.5-.9-6-2.5z"/></svg>
+  <span></span></div>
+  <div class="p-en" id="pEn">Dusk · Yaman · Puriya Dhanashri · Marwa</div>
+  <div class="now" id="now"></div>
+</section>
+
+<div class="yt" id="yt"><div id="ytFrame"></div></div>
+
+<div class="dock glass" id="dock">
+  <div class="ringwrap" title="Session timer">
+    <svg viewBox="0 0 58 58" aria-hidden="true"><circle class="track" cx="29" cy="29" r="26"/><circle class="progress" id="progress" cx="29" cy="29" r="26"/></svg>
+    <span class="t" id="time">30:00</span>
+  </div>
+  <button id="prevBtn" class="icon-btn" title="Previous" aria-label="Previous track">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 6h2v12H7zM18 6.8v10.4c0 .6-.7 1-1.2.6l-7.4-5.2c-.4-.3-.4-.9 0-1.2l7.4-5.2c.5-.4 1.2 0 1.2.6z"/></svg>
+  </button>
+  <button id="playBtn" class="play" title="Play / pause (Space)" aria-label="Play or pause">
+    <svg class="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 5.8v12.4c0 .6.7 1 1.2.7l9.6-6.2c.5-.3.5-1.1 0-1.4L9.7 5.1c-.5-.3-1.2.1-1.2.7z"/></svg>
+    <svg class="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="5" width="3.6" height="14" rx="1.2"/><rect x="13.9" y="5" width="3.6" height="14" rx="1.2"/></svg>
+  </button>
+  <button id="nextBtn" class="icon-btn" title="Next (N)" aria-label="Next track">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 6h2v12h-2zM6 6.8v10.4c0 .6.7 1 1.2.6l7.4-5.2c.4-.3.4-.9 0-1.2L7.2 6.2C6.7 5.8 6 6.2 6 6.8z"/></svg>
+  </button>
+  <div class="meta"><b id="mTitle">Your music</b><span id="mSub">Tap the list to add some</span></div>
+  <button id="droneBtn" class="icon-btn" title="Tanpura drone (D)" aria-label="Toggle tanpura drone">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2.5v10"/><ellipse cx="12" cy="17" rx="5" ry="4.5"/><path d="M10 3.5h4M10.5 13h3"/><path d="M9.5 9v3.5M14.5 9v3.5" opacity=".5"/></svg>
+  </button>
+  <button id="listBtn" class="icon-btn" title="Music & settings (L)" aria-label="Open music and settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6h12M4 11h12M4 16h7"/><path d="M17 13.5v6"/><circle cx="15" cy="19.5" r="2"/></svg>
+  </button>
+</div>
+
+<div class="toast glass" id="toast"></div>
+
+<div class="backdrop" id="backdrop"></div>
+<section class="sheet" id="sheet" role="dialog" aria-label="Music and settings" aria-modal="true">
+  <div class="sheet-head">
+    <h2>Sangeet</h2>
+    <button class="icon-btn glass" id="sheetClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+
+  <h3>Playlist</h3>
+  <div class="list" id="list"></div>
+  <div class="seg" id="modeSeg" style="margin-top:10px">
+    <button data-v="order">In order</button><button data-v="shuffle">Shuffle</button><button data-v="one">Repeat one</button>
+  </div>
+
+  <h3>Add a YouTube link</h3>
+  <div class="add">
+    <input class="field" id="ytUrl" type="url" placeholder="Paste a YouTube link" autocomplete="off" spellcheck="false">
+    <div class="row">
+      <input class="field" id="ytTitle" type="text" maxlength="60" placeholder="Title, e.g. Raag Yaman · Bansuri" autocomplete="off">
+      <select class="field" id="ytTime" aria-label="Best time">
+        <option value="">Any time</option><option value="dawn">Dawn</option><option value="day">Day</option><option value="dusk">Dusk</option><option value="night">Night</option>
+      </select>
+      <button class="btn" id="ytAdd">Add</button>
+    </div>
+  </div>
+  <p class="note">YouTube tracks play in YouTube’s own small player, which stays visible while it plays.</p>
+
+  <h3>Your own audio</h3>
+  <button class="ghost glass" id="fileBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 15v3.5c0 .8.7 1.5 1.5 1.5h11c.8 0 1.5-.7 1.5-1.5V15"/></svg>Play files from this device</button>
+  <input type="file" id="fileIn" accept="audio/*" multiple hidden>
+  <p class="note">Files picked here play for this visit only. To keep songs for good, put them in the <code>songs/</code> folder next to this page and list them in <code>RAAG_TRACKS</code> near the top of the script.</p>
+
+  <h3>Tanpura</h3>
+  <div class="row">
+    <button class="chip glass" id="droneChip">Off</button>
+    <span style="font-size:12px;color:var(--ink-soft);margin-left:6px">Sa</span>
+    <div class="row" id="keyRow"></div>
+  </div>
+  <div class="slider"><span>Tanpura</span><input id="dVol" type="range" min="0" max="1" step="0.01" aria-label="Tanpura volume"></div>
+  <div class="slider"><span>Music</span><input id="mVol" type="range" min="0" max="1" step="0.01" aria-label="Music volume"></div>
+
+  <h3>Session</h3>
+  <div class="row" id="timerRow"></div>
+
+  <h3>Light</h3>
+  <div class="seg" id="themeSeg">
+    <button data-v="auto">Follow the raga clock</button><button data-v="light">Day</button><button data-v="dark">Night</button>
+  </div>
+  <p class="note">Space play · N next · D tanpura · T theme · L this panel · F fullscreen</p>
+</section>
+
+<script>
+/* ===================================================================
+   YOUR MUSIC — add one line per track.
+   • Local file: put it in a "songs" folder next to this page,
+     or paste a full link to an audio file (e.g. from Cloudinary).
+   • YouTube: paste the full link.
+   • time (optional): dawn | day | dusk | night — the raga hour it suits.
+   =================================================================== */
+const RAAG_TRACKS = [
+  { title: 'My first raag', youtube: 'https://youtube.com/watch?v=1VBZVVy6ocE', time: 'dusk' },
+  { title: 'Raag Bhairavi',   file: 'https://res.cloudinary.com/jd-r/video/upload/v1793519792/pause-a-little/raag_bhairavi_id9ywx.mp3', time: 'dawn' },
+  { title: 'Raag Bhairavi',   file: 'https://res.cloudinary.com/jd-r/video/upload/v1793519686/pause-a-little/raag_bhairav_kqyay0.mp3', time: 'dawn' },
+  { title: 'Krishna Bansuri',   file: 'https://res.cloudinary.com/jd-r/video/upload/v1793519773/pause-a-little/krishna_bansuri_dvyxni.mp3', time: 'dawn' },
+  
+  
+  // { title: 'Raag Yaman · Bansuri', file: 'songs/yaman-bansuri.mp3', time: 'dusk' },
+  // { title: 'Raag Bhairav · Sitar',  file: 'songs/bhairav-sitar.mp3', time: 'dawn' },
+  // { title: 'Raag Bageshree · Sitar', file: 'https://res.cloudinary.com/YOUR_CLOUD/video/upload/v1/bageshree.mp3', time: 'night' },
+];
+
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const S = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  };
+
+  /* ---- shell bridge: lets the app frame switch rooms smoothly ---- */
+  const inShell = window.parent !== window;
+  const toShell = m => { if (inShell) try { parent.postMessage(m, '*'); } catch (e) {} };
+  if (inShell) {
+    new MutationObserver(() => toShell({ title: document.title })).observe(document.querySelector('title'), { childList: true });
+    const tc = document.querySelector('meta[name="theme-color"]');
+    new MutationObserver(() => toShell({ theme: tc.content })).observe(tc, { attributes: true });
+    toShell({ title: document.title, theme: tc.content });
+  }
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  let toastT;
+  function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600); }
+
+  /* ================= Raga clock & palettes ================= */
+  const PRAHAR = {
+    dawn:  { hi: 'प्रभात', en: 'Dawn',  ragas: 'Bhairav · Lalit · Todi' },
+    day:   { hi: 'दोपहर', en: 'Day',   ragas: 'Bhimpalasi · Sarang · Multani' },
+    dusk:  { hi: 'संध्या', en: 'Dusk',  ragas: 'Yaman · Puriya Dhanashri · Marwa' },
+    night: { hi: 'रात्रि', en: 'Night', ragas: 'Darbari · Bageshree · Malkauns' }
+  };
+  const praharNow = () => { const h = new Date().getHours(); return h >= 4 && h < 10 ? 'dawn' : h >= 10 && h < 16 ? 'day' : h >= 16 && h < 20 ? 'dusk' : 'night'; };
+
+  const PAL = {
+    prabhat: { dark: false, bg: '#f6eee4', ink: '74,52,46',   accent: '#b9773f', colors: ['#f2cdb9', '#f1dfbd', '#e8c4c9', '#f7e8d3', '#e4cdb6'] },
+    din:     { dark: false, bg: '#f5f0e4', ink: '66,56,38',   accent: '#a9803a', colors: ['#ecdcb4', '#e6d0a0', '#d6dfc8', '#f2e6d2', '#e4cfb4'] },
+    sandhya: { dark: true,  bg: '#231520', ink: '247,233,220', accent: '#e2a45c', colors: ['#6a2d38', '#8a4a37', '#3b2a4e', '#9a5c3c', '#4a2237'] },
+    ratri:   { dark: true,  bg: '#0c0f21', ink: '234,231,246', accent: '#d8b26c', colors: ['#1d2450', '#2a2e62', '#382a55', '#1b3450', '#3f3226'] }
+  };
+  const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+
+  let themeMode = S.get('raag:theme', 'auto');
+  let palKey = null, prahar = praharNow();
+  const col = { bg: [0, 0, 0], accent: [0, 0, 0], colors: [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]], stars: 0 };
+  let tgt = null;
+
+  function paletteFor(mode, p) {
+    if (mode === 'light') return p === 'day' ? 'din' : 'prabhat';
+    if (mode === 'dark') return p === 'dusk' ? 'sandhya' : 'ratri';
+    return { dawn: 'prabhat', day: 'din', dusk: 'sandhya', night: 'ratri' }[p];
+  }
+  function applyTheme(instant) {
+    prahar = praharNow();
+    const P = PRAHAR[prahar];
+    if ($('#pHi').textContent !== P.hi) { $('#pHi').textContent = P.hi; }
+    $('#pEn').textContent = `${P.en} · ${P.ragas}`;
+    const key = paletteFor(themeMode, prahar);
+    document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === themeMode));
+    if (key === palKey) return;
+    palKey = key;
+    const p = PAL[key], r = document.documentElement.style, d = p.dark;
+    tgt = { bg: hex(p.bg), accent: hex(p.accent), colors: p.colors.map(hex), stars: d ? 1 : 0 };
+    if (instant) { col.bg = tgt.bg.slice(); col.accent = tgt.accent.slice(); col.colors = tgt.colors.map(c => c.slice()); col.stars = tgt.stars; }
+    document.body.classList.toggle('light', !d);
+    r.setProperty('--ink', `rgba(${p.ink},.9)`);
+    r.setProperty('--ink-soft', `rgba(${p.ink},.6)`);
+    r.setProperty('--track', `rgba(${p.ink},${d ? .16 : .13})`);
+    r.setProperty('--accent', p.accent);
+    r.setProperty('--bg', p.bg);
+    r.setProperty('--glass', d ? 'rgba(255,255,255,.07)' : 'rgba(255,255,255,.34)');
+    r.setProperty('--glass-strong', d ? 'rgba(255,255,255,.14)' : 'rgba(255,255,255,.6)');
+    r.setProperty('--glass-border', d ? 'rgba(255,255,255,.13)' : 'rgba(255,255,255,.6)');
+    r.setProperty('--sheet', d ? 'rgba(28,20,30,.84)' : 'rgba(252,247,240,.82)');
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', p.bg);
+    const icon = $('#themeBtn svg');
+    icon.innerHTML = themeMode === 'light'
+      ? '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>'
+      : themeMode === 'dark' ? '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'
+      : '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v8.5l5 3"/>';
+  }
+  function setThemeMode(m) { themeMode = m; S.set('raag:theme', m); applyTheme(false); toast(m === 'auto' ? 'Following the raga clock' : m === 'light' ? 'Day light' : 'Night light'); }
+
+  /* ================= Mandala ================= */
+  (function buildMandala() {
+    const ring = (r, n, len, w, off = 0) => {
+      let s = `<circle cx="500" cy="500" r="${r - len / 2 - 6}"/>`;
+      for (let i = 0; i < n; i++) s += `<ellipse cx="500" cy="${500 - r}" rx="${w}" ry="${len / 2}" transform="rotate(${(360 / n) * i + off} 500 500)"/>`;
+      return s;
+    };
+    const dots = (r, n) => { let s = ''; for (let i = 0; i < n; i++) { const a = (Math.PI * 2 * i) / n; s += `<circle cx="${500 + r * Math.sin(a)}" cy="${500 - r * Math.cos(a)}" r="2.2" fill="currentColor" stroke="none"/>`; } return s; };
+    const inner = ring(70, 8, 46, 13) + ring(130, 12, 60, 17, 15) + dots(178, 24) + ring(225, 16, 74, 21);
+    const outer = dots(282, 36) + ring(330, 24, 84, 20, 7.5) + ring(420, 32, 88, 17) + `<circle cx="500" cy="500" r="476"/>` + dots(492, 72);
+    $('#mandala').innerHTML = `<svg viewBox="0 0 1000 1000" fill="none" stroke="currentColor" stroke-width="1.1"><g class="spin-a">${inner}</g><g class="spin-b">${outer}</g></svg>`;
+  })();
+
+  /* ================= Canvases ================= */
+  const bg = $('#bg'), g = bg.getContext('2d', { alpha: false });
+  const fx = $('#fx'), f = fx.getContext('2d');
+  let W = 0, H = 0, FW = 0, FH = 0, dpr = 1;
+  let stars = [];
+  function resize() {
+    W = bg.width = Math.max(40, Math.ceil(innerWidth / 6));
+    H = bg.height = Math.max(40, Math.ceil(innerHeight / 6));
+    dpr = Math.min(devicePixelRatio || 1, 1.5);
+    FW = fx.width = Math.ceil(innerWidth * dpr); FH = fx.height = Math.ceil(innerHeight * dpr);
+    const n = Math.round(Math.min(170, innerWidth * innerHeight / 9000));
+    stars = Array.from({ length: n }, () => ({ x: Math.random() * FW, y: Math.random() * FH * .78, r: rand(.4, 1.25) * dpr, a: rand(.25, .85), tw: rand(.3, 1.2), ph: rand(0, 6.28) }));
+  }
+  addEventListener('resize', resize); resize();
+
+  const blobs = Array.from({ length: 6 }, (_, i) => ({ c: i % 5, sx: rand(.5, 1.1), sy: rand(.5, 1.1), px: rand(0, 6.28), py: rand(0, 6.28), pr: rand(0, 6.28), ax: rand(.28, .4), ay: rand(.26, .38), r: rand(.4, .6) }));
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let tB = rand(0, 100), last = performance.now(), clock = 0;
+  let shoot = null, nextShoot = rand(8, 20);
+  const strE = [0, 0, 0, 0];
+  let level = 0;
+
+  function lerpTo(dt) {
+    if (!tgt) return;
+    const k = 1 - Math.exp(-dt / 18); // ~1 minute to settle: colors never jump
+    for (let j = 0; j < 3; j++) { col.bg[j] += (tgt.bg[j] - col.bg[j]) * k; col.accent[j] += (tgt.accent[j] - col.accent[j]) * k; }
+    col.colors.forEach((c, i) => { for (let j = 0; j < 3; j++) c[j] += (tgt.colors[i][j] - c[j]) * k; });
+    col.stars += (tgt.stars - col.stars) * k;
+  }
+
+  function drawBg() {
+    g.fillStyle = rgba(col.bg, 1); g.fillRect(0, 0, W, H);
+    const M = Math.max(W, H), t = tB;
+    for (const b of blobs) {
+      const x = W * (.5 + b.ax * Math.sin(t * b.sx + b.px) + .06 * Math.sin(t * b.sx * 2.1 + b.py));
+      const y = H * (.5 + b.ay * Math.cos(t * b.sy + b.py) + .06 * Math.cos(t * b.sy * 1.7 + b.px));
+      const r = M * (b.r + .06 * Math.sin(t * .8 + b.pr)), c = col.colors[b.c];
+      const gr = g.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, rgba(c, .8)); gr.addColorStop(.55, rgba(c, .3)); gr.addColorStop(1, rgba(c, 0));
+      g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    }
+  }
+
+  function drawFx(dt) {
+    f.clearRect(0, 0, FW, FH);
+    const t = clock, A = col.accent;
+    // stars
+    if (col.stars > .02) {
+      for (const s of stars) {
+        const a = col.stars * s.a * (.55 + .45 * Math.sin(t * s.tw + s.ph));
+        f.fillStyle = `rgba(255,246,230,${a})`;
+        f.beginPath(); f.arc(s.x, s.y, s.r, 0, 6.283); f.fill();
+      }
+      // shooting star
+      nextShoot -= dt;
+      if (!shoot && nextShoot <= 0 && col.stars > .6 && !reduce) {
+        const ang = rand(.32, .6), sp = rand(.55, .8) * Math.max(FW, FH);
+        shoot = { x: rand(.08, .7) * FW, y: rand(.04, .32) * FH, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 0, dur: rand(1, 1.6) };
+        nextShoot = rand(22, 60);
+      }
+      if (shoot) {
+        shoot.life += dt;
+        const u = shoot.life / shoot.dur;
+        if (u >= 1) shoot = null;
+        else {
+          const hx = shoot.x + shoot.vx * shoot.life, hy = shoot.y + shoot.vy * shoot.life;
+          const len = 150 * dpr, m = Math.hypot(shoot.vx, shoot.vy), tx = hx - shoot.vx / m * len, ty = hy - shoot.vy / m * len;
+          const a = Math.sin(Math.PI * u) * col.stars;
+          const gr = f.createLinearGradient(tx, ty, hx, hy);
+          gr.addColorStop(0, 'rgba(255,240,215,0)'); gr.addColorStop(1, `rgba(255,244,225,${.85 * a})`);
+          f.strokeStyle = gr; f.lineWidth = 1.4 * dpr; f.lineCap = 'round';
+          f.beginPath(); f.moveTo(tx, ty); f.lineTo(hx, hy); f.stroke();
+          f.fillStyle = `rgba(255,248,235,${a})`; f.beginPath(); f.arc(hx, hy, 1.6 * dpr, 0, 6.283); f.fill();
+        }
+      }
+    }
+    // diya glow
+    const flick = .5 * Math.sin(t * 2.3) + .3 * Math.sin(t * 5.1 + 1) + .2 * Math.sin(t * 8.7 + 2);
+    const ga = (col.stars > .5 ? .2 : .13) + flick * .02 + level * .05;
+    const gx = FW / 2, gy = FH * 1.04, gr = Math.max(FW, FH) * (.42 + flick * .006);
+    const dg = f.createRadialGradient(gx, gy, 0, gx, gy, gr);
+    dg.addColorStop(0, rgba(A, ga)); dg.addColorStop(.45, rgba(A, ga * .4)); dg.addColorStop(1, rgba(A, 0));
+    f.fillStyle = dg; f.fillRect(0, 0, FW, FH);
+    // tanpura strings
+    const y0 = FH * .2, y1 = FH * .8, cx = FW / 2, gap = 15 * dpr, offs = [-1.5, -.5, .5, 1.5];
+    const base = col.stars > .5 ? .07 : .1;
+    f.lineWidth = .9 * dpr;
+    for (let i = 0; i < 4; i++) {
+      strE[i] *= Math.exp(-dt * .7);
+      const amp = (.35 + level * 9 + strE[i] * 3.2) * dpr;
+      f.strokeStyle = rgba(A, base + strE[i] * .12 + level * .16);
+      f.beginPath();
+      for (let y = y0; y <= y1; y += 5 * dpr) {
+        const u = (y - y0) / (y1 - y0);
+        const x = cx + offs[i] * gap + amp * Math.sin(Math.PI * u) * Math.sin(t * (11 + i * 2.3) + u * (5 + i));
+        y === y0 ? f.moveTo(x, y) : f.lineTo(x, y);
+      }
+      f.stroke();
+    }
+  }
+
+  function frame(now) {
+    const dt = Math.min(.1, (now - last) / 1000); last = now; clock += dt;
+    tB += dt * (reduce ? .012 : .03);
+    lerpTo(dt);
+    if (E.ctx && E.ctx.state === 'running') {
+      E.analyser.getFloatTimeDomainData(E.buf);
+      let s = 0; for (let i = 0; i < E.buf.length; i += 4) s += E.buf[i] * E.buf[i];
+      const rms = Math.sqrt(s / (E.buf.length / 4));
+      level += (Math.min(1, rms * 3) - level) * (1 - Math.exp(-dt * 3));
+    } else level *= Math.exp(-dt * 2);
+    drawBg(); drawFx(dt);
+    requestAnimationFrame(frame);
+  }
+
+  /* ================= Audio engine ================= */
+  const E = { ctx: null };
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  let musicVol = S.get('raag:vol', .85), droneVol = S.get('raag:dvol', .45);
+  let droneOn = S.get('raag:drone', false), droneKey = S.get('raag:key', 1);
+  const KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F'];
+
+  function initAudio() {
+    if (E.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext, c = E.ctx = new AC();
+    E.comp = c.createDynamicsCompressor(); E.comp.threshold.value = -18; E.comp.ratio.value = 3; E.comp.knee.value = 12; E.comp.connect(c.destination);
+    E.master = c.createGain(); E.master.connect(E.comp);
+    E.analyser = c.createAnalyser(); E.analyser.fftSize = 1024; E.buf = new Float32Array(1024);
+    E.bus = c.createGain(); E.bus.connect(E.master); E.bus.connect(E.analyser);
+    E.music = c.createGain(); E.music.gain.value = 0; E.music.connect(E.bus);
+    E.el = new Audio(); E.el.preload = 'auto';
+    // Opened straight from disk (file://)? The browser would mute routed audio, so play it directly then.
+    E.direct = location.protocol === 'file:';
+    if (E.direct) E.el.volume = 0;
+    else { E.src = c.createMediaElementSource(E.el); E.src.connect(E.music); }
+    E.el.addEventListener('timeupdate', onTime);
+    E.el.addEventListener('ended', onEnded);
+    E.el.addEventListener('error', () => { if (cur && cur.kind === 'file' && playing) { toast('Couldn’t play that file'); skipSoon(); } });
+    // reverb
+    const len = Math.floor(c.sampleRate * 4.5), ir = c.createBuffer(2, len, c.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8); }
+    E.rev = c.createConvolver(); E.rev.buffer = ir;
+    const wet = c.createGain(); wet.gain.value = .5; E.rev.connect(wet).connect(E.bus);
+    E.drone = c.createGain(); E.drone.gain.value = 0; E.drone.connect(E.bus);
+    const send = c.createGain(); send.gain.value = .4; E.drone.connect(send).connect(E.rev);
+    // tanpura timbre: rich, slowly falling harmonics
+    const N = 28, re = new Float32Array(N), im = new Float32Array(N);
+    for (let n = 1; n < N; n++) im[n] = (n === 1 ? 1 : .75 / Math.pow(n, .75)) * (n % 7 === 0 ? .5 : 1);
+    E.wave = c.createPeriodicWave(re, im);
+    // chime
+    E.chime = c.createGain(); E.chime.gain.value = .45; E.chime.connect(E.comp);
+    const cv = c.createConvolver(); cv.buffer = ir; const cw = c.createGain(); cw.gain.value = .5; E.chime.connect(cv); cv.connect(cw).connect(E.comp);
+    setInterval(droneTick, 300);
+  }
+  let mFadeIv = null;
+  function musicTo(v, sec) {
+    if (!E.direct) return ramp(E.music.gain, v, sec);
+    clearInterval(mFadeIv);
+    const from = E.el.volume, steps = Math.max(1, Math.round(sec * 1000 / 50));
+    let i = 0;
+    mFadeIv = setInterval(() => {
+      i++; E.el.volume = Math.min(1, Math.max(0, from + (v - from) * (i / steps)));
+      if (i >= steps) clearInterval(mFadeIv);
+    }, 50);
+  }
+  function musicSilence() {
+    if (E.direct) { clearInterval(mFadeIv); E.el.volume = 0; return; }
+    const n = E.ctx.currentTime; E.music.gain.cancelScheduledValues(n); E.music.gain.setValueAtTime(0, n);
+  }
+  function ramp(p, v, sec) { const n = E.ctx.currentTime; p.cancelScheduledValues(n); p.setValueAtTime(p.value, n); p.linearRampToValueAtTime(v, n + sec); }
+
+  /* ---- Tanpura: Pa · Sa · Sa · Sa (low) ---- */
+  const PAT = [[-5, 0, 0], [0, 1, 1.35], [0, 2, 2.7], [-12, 3, 4.05]], CYCLE = 6.4;
+  let dNext = 0, dStep = 0, droneLive = false;
+  function pluck(m, t, str) {
+    const c = E.ctx, fq = mtof(m);
+    const env = c.createGain();
+    env.gain.setValueAtTime(0, t); env.gain.linearRampToValueAtTime(.11, t + .03);
+    env.gain.exponentialRampToValueAtTime(.03, t + 2.5); env.gain.exponentialRampToValueAtTime(.0001, t + 7.5);
+    const pk = c.createBiquadFilter(); pk.type = 'peaking'; pk.Q.value = 5; pk.gain.value = 11;
+    pk.frequency.setValueAtTime(fq * 3, t); pk.frequency.exponentialRampToValueAtTime(Math.min(fq * 16, 5200), t + 2.4); pk.frequency.exponentialRampToValueAtTime(fq * 6, t + 7);
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3600;
+    [0, 4].forEach(det => { const o = c.createOscillator(); o.setPeriodicWave(E.wave); o.frequency.value = fq; o.detune.value = det; o.connect(pk); o.start(t); o.stop(t + 7.6); });
+    pk.connect(lp).connect(env).connect(E.drone);
+    setTimeout(() => { strE[str] = 1; }, Math.max(0, (t - c.currentTime) * 1000));
+  }
+  function droneTick() {
+    if (!E.ctx || !droneLive || E.ctx.state !== 'running') return;
+    const ahead = E.ctx.currentTime + 1.6, base = 48 + droneKey;
+    while (dNext < ahead) {
+      const i = dStep % 4, [semi, str] = PAT[i];
+      pluck(base + semi, dNext, str);
+      dNext += i === 3 ? CYCLE - PAT[3][2] : PAT[i + 1][2] - PAT[i][2];
+      dStep++;
+    }
+  }
+  function droneStart() {
+    if (droneLive) return;
+    droneLive = true; dNext = E.ctx.currentTime + .15; dStep = 0;
+    ramp(E.drone.gain, droneVol * .55, 1.5); droneTick();
+  }
+  function droneStop(sec = 2) { if (!E.ctx) return; droneLive = false; ramp(E.drone.gain, 0, sec); }
+
+  function bell() {
+    initAudio(); if (E.ctx.state !== 'running') E.ctx.resume();
+    const c = E.ctx, t = c.currentTime + .2;
+    [[0, 69], [1.8, 64], [3.6, 69]].forEach(([dt, m]) => {
+      const fq = mtof(m);
+      [[1, 1, 9], [2.76, .35, 5], [5.4, .14, 3], [1.003, .6, 9]].forEach(([r, a, d]) => {
+        const env = c.createGain(); env.gain.setValueAtTime(0, t + dt); env.gain.linearRampToValueAtTime(.16 * a, t + dt + .02);
+        env.gain.exponentialRampToValueAtTime(.0001, t + dt + d); env.connect(E.chime);
+        const o = c.createOscillator(); o.frequency.value = fq * r; o.connect(env); o.start(t + dt); o.stop(t + dt + d + .1);
+      });
+    });
+  }
+
+  /* ================= Tracks ================= */
+  const ytId = u => {
+    if (!u) return null; u = String(u).trim();
+    if (/^[\w-]{11}$/.test(u)) return u;
+    const m = u.match(/(?:[?&]v=|youtu\.be\/|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/);
+    return m ? m[1] : null;
+  };
+  let saved = S.get('raag:yt', []);
+  let sessionFiles = [];
+  function tracks() {
+    const fixed = RAAG_TRACKS.map((t, i) => ({ key: 'c' + i, title: t.title || 'Untitled', kind: t.file ? 'file' : 'yt', src: t.file || ytId(t.youtube), time: t.time })).filter(t => t.src);
+    return [...fixed,
+      ...saved.map(t => ({ key: 'y' + t.id, id: t.id, title: t.title, kind: 'yt', src: t.yt, time: t.time, removable: 'saved' })),
+      ...sessionFiles];
+  }
+  const label = t => [t.kind === 'yt' ? 'YouTube' : t.session ? 'This visit' : 'Your audio', t.time ? PRAHAR[t.time].en : ''].filter(Boolean).join(' · ');
+
+  let mode = S.get('raag:mode', 'order');
+  let cur = null, playing = false, switchTok = 0, fadingOut = false;
+
+  function renderNow() {
+    const t = cur;
+    $('#mTitle').textContent = t ? t.title : (droneOn ? 'Tanpura' : 'Your music');
+    $('#mSub').textContent = t ? label(t) : (droneOn ? `Drone in ${KEYS[droneKey]}` : 'Tap the list to add some');
+    const now = $('#now');
+    now.textContent = t ? t.title : (droneOn && playing ? `Tanpura · Sa ${KEYS[droneKey]}` : '');
+    now.classList.toggle('show', playing && !!now.textContent);
+  }
+  function renderList() {
+    const all = tracks(), p = praharNow();
+    $('#list').innerHTML = all.length ? all.map(t => `
+      <div class="item${cur && cur.key === t.key ? ' cur' : ''}" data-key="${t.key}" role="button" tabindex="0">
+        <span class="eq"><i></i><i></i><i></i></span>
+        <span class="tt"><b>${esc(t.title)}</b><span>${esc(label(t))}${t.time === p ? ' · suits now' : ''}</span></span>
+        ${t.removable ? `<button class="x" data-del="${t.key}" aria-label="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>` : ''}
+      </div>`).join('') : '<div class="empty">No music yet. Add a YouTube link below, or turn on the tanpura.</div>';
+  }
+
+  function pickNext(dir = 1) {
+    const all = tracks(); if (!all.length) return null;
+    const i = cur ? all.findIndex(t => t.key === cur.key) : -1;
+    if (mode === 'one' && cur && dir === 1 && i >= 0) return all[i];
+    if (mode === 'shuffle' && all.length > 1) { let j; do { j = (Math.random() * all.length) | 0; } while (j === i); return all[j]; }
+    return all[((i < 0 ? (dir > 0 ? -1 : 0) : i) + dir + all.length) % all.length];
+  }
+  function firstTrack() {
+    const all = tracks(), p = praharNow();
+    return all.find(t => t.time === p) || all[0] || null;
+  }
+
+  /* ---- YouTube ---- */
+  let ytPromise = null, yt = null;
+  function ytEnsure() {
+    if (location.protocol === 'file:') {
+      toast('YouTube needs the site online: open it from Netlify or a local server');
+      return Promise.reject(new Error('file'));
+    }
+    if (ytPromise) return ytPromise;
+    ytPromise = new Promise((res, rej) => {
+      window.onYouTubeIframeAPIReady = () => {
+        yt = new YT.Player('ytFrame', {
+          width: '100%', height: '100%',
+          playerVars: { playsinline: 1, rel: 0, modestbranding: 1, origin: location.origin, widget_referrer: location.href },
+          events: {
+            onReady: () => res(),
+            onStateChange: e => { if (e.data === 0) onEnded(); },
+            onError: () => { toast('That YouTube video can’t be played here'); skipSoon(); }
+          }
+        });
+      };
+      const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api';
+      s.onerror = () => { ytPromise = null; rej(new Error('yt')); };
+      document.head.appendChild(s);
+    });
+    return ytPromise;
+  }
+  let ytFadeTok = 0;
+  function ytFade(to, ms) {
+    if (!yt || !yt.setVolume) return Promise.resolve();
+    const tok = ++ytFadeTok, from = yt.getVolume ? yt.getVolume() : 0, steps = Math.max(1, Math.round(ms / 60));
+    return new Promise(res => {
+      let i = 0;
+      const iv = setInterval(() => {
+        if (tok !== ytFadeTok) { clearInterval(iv); return res(); }
+        i++; yt.setVolume(Math.round(from + (to - from) * (i / steps)));
+        if (i >= steps) { clearInterval(iv); res(); }
+      }, 60);
+    });
+  }
+  function showYT(on) { $('#yt').classList.toggle('on', on); document.body.classList.toggle('yt-on', on); }
+
+  /* ---- transport ---- */
+  async function stopCurrent(sec = .6) {
+    if (!cur) return;
+    if (cur.kind === 'file') { musicTo(0, sec); await wait(sec * 1000 + 60); E.el.pause(); }
+    else if (yt && yt.pauseVideo) { await ytFade(0, sec * 1000); yt.pauseVideo(); }
+  }
+  async function startTrack(t) {
+    cur = t; fadingOut = false; renderNow(); renderList(); S.set('raag:last', t.key);
+    if (t.kind === 'file') {
+      showYT(false);
+      // songs hosted elsewhere (e.g. Cloudinary) must be requested with CORS, or the browser mutes them
+      const remote = /^https?:\/\//i.test(t.src) && !t.src.startsWith(location.origin);
+      if (!E.direct && remote) E.el.crossOrigin = 'anonymous'; else E.el.removeAttribute('crossorigin');
+      E.el.src = t.src;
+      musicSilence();
+      try { await E.el.play(); } catch (e) { toast('Couldn’t play that file'); return; }
+      musicTo(musicVol, 3);
+    } else {
+      showYT(true);
+      try { await ytEnsure(); } catch (e) { if (e.message !== 'file') toast('YouTube couldn’t load. Check your connection.'); showYT(false); return; }
+      if (cur !== t) return;
+      yt.setVolume(0); yt.loadVideoById(t.src);
+      ytFade(Math.round(musicVol * 100), 3500);
+    }
+  }
+  async function playTrack(t) {
+    if (!t) return;
+    const tok = ++switchTok;
+    if (cur && cur.key !== t.key) await stopCurrent(.6);
+    if (tok !== switchTok) return;
+    await startTrack(t);
+  }
+  function skipSoon() { setTimeout(() => { if (playing) playTrack(pickNext(1)); }, 1500); }
+  function onTime() {
+    const el = E.el;
+    if (!playing || fadingOut || !isFinite(el.duration) || el.duration < 12) return;
+    const left = el.duration - el.currentTime;
+    if (left < 4.5) { fadingOut = true; musicTo(0, Math.max(.5, left - .2)); }
+  }
+  function onEnded() {
+    if (!playing) return;
+    if (mode === 'one' && cur) { const t = cur; cur = null; playTrack(t); }
+    else playTrack(pickNext(1));
+  }
+
+  async function sessionPlay() {
+    initAudio();
+    if (E.ctx.state !== 'running') await E.ctx.resume();
+    const all = tracks();
+    if (!all.length && !droneOn) { setDrone(true, true); }
+    playing = true; document.body.classList.add('playing'); toShell({ playing: 1 });
+    if (droneOn) droneStart();
+    if (all.length) {
+      if (cur && all.some(t => t.key === cur.key)) {
+        if (cur.kind === 'file') { try { await E.el.play(); } catch (e) {} musicTo(musicVol, 2); }
+        else { showYT(true); try { await ytEnsure(); } catch (e) {} if (yt && yt.playVideo) { yt.playVideo(); ytFade(Math.round(musicVol * 100), 2500); } }
+        renderNow();
+      } else {
+        const last = S.get('raag:last', null);
+        playTrack(all.find(t => t.key === last) || firstTrack());
+      }
+    } else renderNow();
+    timerStart(); keepAwake(true); scheduleZen();
+  }
+  async function sessionPause(fadeSec = .9) {
+    playing = false; document.body.classList.remove('playing');
+    droneStop(fadeSec + .5);
+    timerPause(); keepAwake(false); wake(); renderNow();
+    if (cur) {
+      const tok = ++switchTok;
+      if (cur.kind === 'file') { musicTo(0, fadeSec); await wait(fadeSec * 1000 + 60); if (tok === switchTok && !playing) E.el.pause(); }
+      else if (yt && yt.pauseVideo) { await ytFade(0, fadeSec * 1000); if (tok === switchTok && !playing) yt.pauseVideo(); }
+    }
+  }
+  const toggle = () => playing ? sessionPause() : sessionPlay();
+
+  function setDrone(on, quiet) {
+    droneOn = on; S.set('raag:drone', on);
+    $('#droneBtn').classList.toggle('on', on);
+    $('#droneChip').classList.toggle('on', on); $('#droneChip').textContent = on ? 'On' : 'Off';
+    if (E.ctx && playing) on ? droneStart() : droneStop();
+    if (!quiet) toast(on ? `Tanpura on · Sa ${KEYS[droneKey]}` : 'Tanpura off');
+    renderNow();
+  }
+
+  /* ================= Timer ================= */
+  const TIMES = [0, 15, 20, 30, 45, 60];
+  let minutes = S.get('raag:min', 30), remaining = minutes * 60000, endAt = 0, tIv = null, tState = 'idle';
+  const C = 2 * Math.PI * 26, prog = $('#progress');
+  prog.style.strokeDasharray = C.toFixed(2);
+  const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+  function renderTimer() {
+    if (!minutes) { $('#time').textContent = '∞'; prog.style.strokeDashoffset = '0'; return; }
+    $('#time').textContent = fmt(remaining);
+    prog.style.strokeDashoffset = (C * (1 - remaining / (minutes * 60000))).toFixed(2);
+    document.title = tState === 'running' ? `${fmt(remaining)} · raag` : 'raag · pause a little';
+  }
+  function timerStart() {
+    if (!minutes) return;
+    if (tState === 'done' || tState === 'idle') remaining = minutes * 60000;
+    tState = 'running'; endAt = Date.now() + remaining;
+    clearInterval(tIv); tIv = setInterval(timerTick, 500); renderTimer();
+  }
+  function timerPause() { if (tState !== 'running') return; remaining = Math.max(0, endAt - Date.now()); tState = 'paused'; clearInterval(tIv); renderTimer(); }
+  function timerTick() { remaining = endAt - Date.now(); if (remaining <= 0) return timerDone(); renderTimer(); }
+  async function timerDone() {
+    clearInterval(tIv); tState = 'done'; remaining = 0; renderTimer();
+    await sessionPause(8);
+    bell();
+    logSession(minutes);
+    toast('Session complete · rest a moment');
+    setTimeout(() => { if (tState === 'done') { tState = 'idle'; remaining = minutes * 60000; renderTimer(); } }, 9000);
+  }
+  function setMinutes(m) {
+    minutes = m; S.set('raag:min', m);
+    document.querySelectorAll('#timerRow .chip').forEach(b => b.classList.toggle('on', +b.dataset.m === m));
+    clearInterval(tIv); remaining = m * 60000; tState = 'idle';
+    if (playing && m) timerStart();
+    renderTimer();
+  }
+  function logSession(min) {
+    const log = S.get('drift:log', {}), k = new Date().toLocaleDateString('en-CA');
+    log[k] = log[k] || { min: 0, n: 0 }; log[k].min += min; log[k].n += 1;
+    S.set('drift:log', log);
+  }
+
+  /* ================= Wake lock & zen ================= */
+  let wl = null;
+  async function keepAwake(on) {
+    if (inShell) return toShell({ wake: on ? 'raag' : 'raag-off' });
+    try {
+      if (on && 'wakeLock' in navigator) { if (!wl) { wl = await navigator.wakeLock.request('screen'); wl.addEventListener('release', () => { wl = null; }); } }
+      else if (!on && wl) { await wl.release(); wl = null; }
+    } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { applyTheme(false); if (playing) keepAwake(true); if (tState === 'running') timerTick(); } });
+  let zenT = null;
+  const sheetOpen = () => document.body.classList.contains('sheet-open');
+  function wake() { document.body.classList.remove('zen'); scheduleZen(); }
+  function scheduleZen() { clearTimeout(zenT); if (playing && !sheetOpen()) zenT = setTimeout(() => { if (playing && !sheetOpen()) document.body.classList.add('zen'); }, 6000); }
+  ['pointermove', 'pointerdown', 'keydown', 'touchstart'].forEach(ev => addEventListener(ev, wake, { passive: true }));
+
+  /* ================= Sheet & wiring ================= */
+  function openSheet() { renderList(); document.body.classList.add('sheet-open'); document.body.classList.remove('zen'); clearTimeout(zenT); }
+  function closeSheet() { document.body.classList.remove('sheet-open'); scheduleZen(); }
+
+  $('#playBtn').addEventListener('click', toggle);
+  $('#nextBtn').addEventListener('click', () => { const t = pickNext(1); if (!t) return toast('Add some music first'); if (!playing) { cur = null; S.set('raag:last', t.key); sessionPlay(); } else playTrack(t); });
+  $('#prevBtn').addEventListener('click', () => { const t = pickNext(-1); if (!t) return; if (!playing) { cur = null; S.set('raag:last', t.key); sessionPlay(); } else playTrack(t); });
+  $('#droneBtn').addEventListener('click', () => setDrone(!droneOn));
+  $('#droneChip').addEventListener('click', () => setDrone(!droneOn));
+  $('#listBtn').addEventListener('click', openSheet);
+  $('#sheetClose').addEventListener('click', closeSheet);
+  $('#backdrop').addEventListener('click', closeSheet);
+  $('#themeBtn').addEventListener('click', () => setThemeMode({ auto: 'light', light: 'dark', dark: 'auto' }[themeMode]));
+  $('#themeSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setThemeMode(b.dataset.v); });
+
+  $('#list').addEventListener('click', e => {
+    const del = e.target.closest('[data-del]');
+    if (del) {
+      e.stopPropagation();
+      const key = del.dataset.del;
+      if (key[0] === 'y') { saved = saved.filter(t => 'y' + t.id !== key); S.set('raag:yt', saved); }
+      else { const f = sessionFiles.find(t => t.key === key); if (f) URL.revokeObjectURL(f.src); sessionFiles = sessionFiles.filter(t => t.key !== key); }
+      if (cur && cur.key === key) { const was = playing; stopCurrent(.5); cur = null; showYT(false); if (was) playTrack(pickNext(1)); }
+      renderList(); renderNow(); return;
+    }
+    const it = e.target.closest('.item'); if (!it) return;
+    const t = tracks().find(x => x.key === it.dataset.key); if (!t) return;
+    if (!playing) { cur = null; S.set('raag:last', t.key); sessionPlay(); } else playTrack(t);
+  });
+  $('#list').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList.contains('item')) e.target.click(); });
+
+  $('#modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.v; S.set('raag:mode', mode);
+    document.querySelectorAll('#modeSeg button').forEach(x => x.classList.toggle('on', x === b));
+  });
+  document.querySelectorAll('#modeSeg button').forEach(x => x.classList.toggle('on', x.dataset.v === mode));
+
+  $('#ytAdd').addEventListener('click', () => {
+    const id = ytId($('#ytUrl').value);
+    if (!id) return toast('That doesn’t look like a YouTube link');
+    const title = $('#ytTitle').value.trim() || 'YouTube track';
+    saved.push({ id: Date.now().toString(36), yt: id, title, time: $('#ytTime').value || undefined });
+    S.set('raag:yt', saved);
+    $('#ytUrl').value = ''; $('#ytTitle').value = '';
+    renderList(); renderNow(); toast('Added to your playlist');
+  });
+  $('#ytUrl').addEventListener('keydown', e => { if (e.key === 'Enter') $('#ytTitle').focus(); });
+  $('#ytTitle').addEventListener('keydown', e => { if (e.key === 'Enter') $('#ytAdd').click(); });
+
+  $('#fileBtn').addEventListener('click', () => $('#fileIn').click());
+  $('#fileIn').addEventListener('change', e => {
+    const files = [...e.target.files]; e.target.value = '';
+    files.forEach(file => sessionFiles.push({ key: 's' + Math.random().toString(36).slice(2, 8), title: file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '), kind: 'file', src: URL.createObjectURL(file), session: true, removable: 'session' }));
+    renderList();
+    if (files.length) toast(`${files.length} file${files.length > 1 ? 's' : ''} added for this visit`);
+  });
+
+  $('#keyRow').innerHTML = KEYS.map((k, i) => `<button class="chip glass" data-k="${i}">${k}</button>`).join('');
+  const renderKeys = () => document.querySelectorAll('#keyRow .chip').forEach(b => b.classList.toggle('on', +b.dataset.k === droneKey));
+  $('#keyRow').addEventListener('click', e => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    droneKey = +b.dataset.k; S.set('raag:key', droneKey); renderKeys(); renderNow();
+    if (droneLive) { droneStop(1.2); setTimeout(() => { if (playing && droneOn) droneStart(); }, 1300); }
+  });
+  renderKeys();
+
+  const dV = $('#dVol'), mV = $('#mVol');
+  dV.value = droneVol; mV.value = musicVol;
+  dV.addEventListener('input', () => { droneVol = +dV.value; S.set('raag:dvol', droneVol); if (droneLive) ramp(E.drone.gain, droneVol * .55, .15); });
+  mV.addEventListener('input', () => {
+    musicVol = +mV.value; S.set('raag:vol', musicVol);
+    if (playing && cur) { if (cur.kind === 'file') { if (!fadingOut) musicTo(musicVol, .15); } else if (yt && yt.setVolume) { ytFadeTok++; yt.setVolume(Math.round(musicVol * 100)); } }
+  });
+
+  $('#timerRow').innerHTML = TIMES.map(m => `<button class="chip glass" data-m="${m}">${m ? m + 'm' : 'No timer'}</button>`).join('');
+  $('#timerRow').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) setMinutes(+b.dataset.m); });
+
+  function toggleFs() { if (inShell) return toShell({ fs: 1 }); try { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); } catch (e) {} }
+  $('#fsBtn').addEventListener('click', toggleFs);
+  if (!document.documentElement.requestFullscreen && !inShell) $('#fsBtn').style.display = 'none';
+  $('#backLink').addEventListener('click', e => { if (inShell) { e.preventDefault(); toShell({ go: 'timer' }); } });
+  addEventListener('message', e => { if (e.source === parent && e.data && e.data.quiet && playing) sessionPause(1.5); });
+
+  addEventListener('keydown', e => {
+    if (e.key === 'Escape' && sheetOpen()) return closeSheet();
+    if (e.target.matches('input, select, textarea')) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === ' ') { e.preventDefault(); toggle(); }
+    else if (k === 'n') $('#nextBtn').click();
+    else if (k === 'd') setDrone(!droneOn);
+    else if (k === 't') $('#themeBtn').click();
+    else if (k === 'l') sheetOpen() ? closeSheet() : openSheet();
+    else if (k === 'f') toggleFs();
+  });
+
+  setInterval(() => applyTheme(false), 60000);
+
+  /* ================= Boot ================= */
+  applyTheme(true);
+  setDrone(droneOn, true);
+  setMinutes(minutes);
+  renderList(); renderNow();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

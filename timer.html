@@ -1,0 +1,1198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>pause a little</title>
+<meta name="description" content="pause a little: a calm focus timer with drifting colors, gentle generative music and a quiet motivation corner.">
+<meta name="theme-color" content="#f6e7e1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="pause a little">
+<meta name="application-name" content="pause a little">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='g' cx='35%25' cy='35%25'%3E%3Cstop offset='0' stop-color='%23fbe3ef'/%3E%3Cstop offset='.55' stop-color='%23d8c8f0'/%3E%3Cstop offset='1' stop-color='%23bfe0e4'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='28' fill='url(%23g)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@300;400;500&family=Noto+Serif+Devanagari:wght@300;400&family=Noto+Serif+Gujarati:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: rgba(59,47,63,.86);
+    --ink-soft: rgba(59,47,63,.55);
+    --glass: rgba(255,255,255,.30);
+    --glass-strong: rgba(255,255,255,.55);
+    --glass-border: rgba(255,255,255,.55);
+    --sheet: rgba(255,255,255,.68);
+    --track: rgba(59,47,63,.10);
+    --bg: #f6e7e1;
+    --ease: cubic-bezier(.4,0,.2,1);
+    --serif: Fraunces, "Noto Serif Devanagari", "Noto Serif Gujarati", Georgia, serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg);color:var(--ink);
+    font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-weight:400;
+    overflow:hidden;min-height:100dvh;-webkit-font-smoothing:antialiased;
+    transition:color 2.5s var(--ease);user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+  }
+  input,textarea{user-select:text;-webkit-user-select:text}
+  canvas#bg{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
+  .grain{
+    position:fixed;inset:-50%;z-index:1;pointer-events:none;opacity:.09;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .app{
+    position:relative;z-index:3;height:100dvh;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));
+    pointer-events:none;
+  }
+  .timer-card{display:flex;flex-direction:column;align-items:center;pointer-events:auto;transition:opacity .45s var(--ease)}
+  .top{
+    position:fixed;top:0;left:0;right:0;z-index:5;
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:max(18px,env(safe-area-inset-top)) 16px 0;
+  }
+  .brand{display:flex;align-items:center;gap:11px;font-family:Fraunces,Georgia,serif;font-size:20px;font-weight:300;letter-spacing:.01em;line-height:1}
+  .brand .w1{font-weight:300}
+  .brand .w2{font-style:italic;font-weight:300;color:var(--ink-soft)}
+  .brand .dot{width:12px;height:12px;border-radius:50%;background:var(--ink);opacity:.55;animation:breathe 8s ease-in-out infinite}
+  @keyframes breathe{0%,100%{transform:scale(.75);opacity:.35}50%{transform:scale(1.15);opacity:.7}}
+  .top-actions{display:flex;gap:8px;min-width:0}
+
+  .glass{
+    background:var(--glass);border:1px solid var(--glass-border);
+    -webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);
+  }
+  button{font:inherit;color:inherit;cursor:pointer;border:none;background:none;padding:0}
+  button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--ink-soft);outline-offset:3px}
+  .pill{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px;border-radius:999px;font-size:13px;letter-spacing:.02em;white-space:nowrap;transition:background .3s var(--ease)}
+  .pill:hover{background:var(--glass-strong)}
+  .pill svg{width:15px;height:15px;opacity:.8}
+  .swatch{width:14px;height:14px;border-radius:50%;flex:none;background:conic-gradient(var(--s1),var(--s2),var(--s3),var(--s1))}
+  .icon-btn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex:none;transition:background .3s var(--ease),transform .3s var(--ease)}
+  .icon-btn:hover,.icon-btn.on{background:var(--glass-strong)}
+  .icon-btn:active,.play:active{transform:scale(.94)}
+  .icon-btn svg{width:20px;height:20px}
+  .top .icon-btn{width:38px;height:38px}
+  .top .icon-btn svg{width:17px;height:17px}
+  @media (max-width:460px){.brand .word{display:none}.pill{padding:0 11px}.top-actions{gap:6px}}
+  @media (max-width:430px){#moodName,#paletteName,.raag-word{display:none}}
+
+  .dial{position:relative;width:min(80vw,380px,52dvh);aspect-ratio:1;display:grid;place-items:center}
+  .ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+  .ring circle{fill:none;stroke-width:1.1}
+  .ring .track{stroke:var(--track)}
+  .ring .progress{stroke:var(--ink);stroke-linecap:round;opacity:.6;transition:stroke-dashoffset .35s linear}
+  .ring .halo{fill:var(--glass);stroke:none;opacity:.55}
+  body.done .ring .track{animation:pulse 4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{stroke:var(--track)}50%{stroke:var(--ink-soft)}}
+  .readout{position:relative;text-align:center}
+  .time{font-family:Fraunces,Georgia,serif;font-weight:300;font-size:clamp(56px,min(17vw,11dvh),112px);line-height:1;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .status{margin-top:14px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);min-height:1.2em}
+
+  .presets{margin-top:clamp(18px,4dvh,34px);display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:440px}
+  .chip{height:34px;min-width:52px;padding:0 14px;border-radius:999px;font-size:13px;transition:background .3s var(--ease),color .3s}
+  .chip:hover{background:var(--glass-strong)}
+  .chip.active,.chip.on{background:var(--ink);color:var(--bg);border-color:transparent}
+  .custom{display:inline-flex;align-items:center;gap:4px;height:34px;padding:0 6px 0 12px;border-radius:999px;font-size:13px}
+  .custom input{width:44px;height:26px;border:none;background:transparent;color:inherit;font:inherit;text-align:center;-moz-appearance:textfield;appearance:textfield}
+  .custom input::-webkit-outer-spin-button,.custom input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .custom span{color:var(--ink-soft);padding-right:6px}
+
+  .controls{margin-top:clamp(16px,3.5dvh,28px);display:flex;align-items:center;gap:18px}
+  .play{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;transition:background .3s var(--ease),transform .3s var(--ease)}
+  .play:hover{background:var(--glass-strong)}
+  .play svg{width:26px;height:26px}
+  .play .i-pause,.playing .play .i-play{display:none}
+  .playing .play .i-pause{display:block}
+  .i-off{display:none}
+  .muted .i-on{display:none}
+  .muted .i-off{display:block}
+  .corner-only{display:none !important}
+
+  .volume{margin-top:18px;display:flex;align-items:center;gap:10px;width:min(220px,60vw)}
+  input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:3px;border-radius:3px;background:var(--track);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--ink);opacity:.75;cursor:pointer;border:none}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--ink);opacity:.75;cursor:pointer;border:none}
+
+  .hint{position:fixed;bottom:max(16px,env(safe-area-inset-bottom));left:0;right:0;text-align:center;font-size:11.5px;letter-spacing:.06em;color:var(--ink-soft);z-index:3}
+  .hint kbd{font-family:inherit;padding:1px 6px;border-radius:5px;border:1px solid var(--track)}
+  @media (hover:none){.hint{display:none}}
+  @media (max-height:560px){.volume{display:none}.presets{margin-top:12px}.controls{margin-top:12px}}
+
+  .fade{transition:opacity 1.2s var(--ease)}
+  body.zen .fade{opacity:0;pointer-events:none}
+  body.zen{cursor:none}
+
+  /* ---------- Motivation corner ---------- */
+  .words{position:fixed;inset:0;z-index:2;display:none;place-items:center;text-align:center;pointer-events:none;
+    padding:max(90px,calc(env(safe-area-inset-top) + 80px)) 26px 190px;transition:opacity .45s var(--ease)}
+  body.corner .words{display:grid}
+  .quote{margin:0;max-width:min(800px,94vw);opacity:0;transform:translateY(10px);filter:blur(2px);
+    transition:opacity 2.6s var(--ease),transform 2.6s var(--ease),filter 2.6s var(--ease)}
+  .quote.show{opacity:1;transform:none;filter:none}
+  .q-text{margin:0;font-family:var(--serif);font-weight:300;font-size:clamp(27px,4.4vw,48px);line-height:1.32;letter-spacing:-.005em;white-space:pre-line;text-wrap:balance}
+  .quote.poem .q-text{font-size:clamp(23px,3.5vw,38px);line-height:1.6;letter-spacing:0}
+  .q-mean{margin:22px auto 0;max-width:560px;font-family:Fraunces,Georgia,serif;font-style:italic;font-weight:300;font-size:clamp(15px,1.8vw,18px);line-height:1.55;color:var(--ink-soft)}
+  .q-mean:empty,.q-by:empty{display:none}
+  .q-by{margin:16px 0 0;font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft)}
+  .q-by::before{content:"";display:inline-block;width:22px;height:1px;background:currentColor;vertical-align:middle;margin-right:10px;opacity:.6}
+
+  body.corner .timer-card{
+    position:fixed;z-index:4;left:50%;bottom:max(16px,env(safe-area-inset-bottom));transform:translateX(-50%);
+    flex-direction:row;gap:12px;padding:10px 12px 10px 10px;border-radius:30px;
+    background:var(--glass);border:1px solid var(--glass-border);
+    -webkit-backdrop-filter:blur(16px) saturate(1.2);backdrop-filter:blur(16px) saturate(1.2);
+    transition:opacity 1.2s var(--ease);
+  }
+  @media (min-width:760px){
+    body.corner .timer-card{left:28px;bottom:28px;transform:none}
+    .words{padding:110px 56px 120px}
+  }
+  body.corner .dial{width:88px}
+  body.corner .ring .halo{display:none}
+  body.corner .time{font-size:21px}
+  body.corner .status,body.corner .presets,body.corner .volume,body.corner .hint{display:none}
+  body.corner .controls{margin-top:0;gap:8px}
+  body.corner .controls .glass{background:transparent;border-color:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+  body.corner .controls .icon-btn:hover,body.corner .controls .play:hover{background:var(--glass-strong)}
+  body.corner .play{width:52px;height:52px}
+  body.corner .play svg{width:20px;height:20px}
+  body.corner .controls .icon-btn{width:40px;height:40px}
+  body.corner .controls .icon-btn svg{width:18px;height:18px}
+  body.corner .corner-only{display:grid !important}
+  body.corner.zen .controls{opacity:1;pointer-events:auto}
+  body.corner.zen .timer-card{opacity:.4}
+  body.morph .timer-card,body.morph .words{opacity:0 !important}
+
+  .intent{margin-top:clamp(12px,2.6dvh,22px);width:min(320px,80vw);text-align:center;background:transparent;border:none;border-bottom:1px solid var(--track);
+    color:var(--ink);font-family:Fraunces,"Noto Serif Devanagari","Noto Serif Gujarati",Georgia,serif;font-style:italic;font-weight:300;font-size:17px;padding:6px 4px;outline:none;transition:border-color .6s}
+  .intent::placeholder{color:var(--ink-soft);opacity:.8}
+  .intent:focus{border-bottom-color:var(--ink-soft)}
+  body.playing .intent{border-bottom-color:transparent}
+  body.corner .intent{display:none}
+  @media (max-height:600px){.intent{display:none}}
+  .intent-show{position:absolute;left:0;right:0;top:max(86px,calc(env(safe-area-inset-top) + 76px));padding:0 24px;font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft)}
+  .intent-show:empty{display:none}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .stat{padding:12px 6px;border-radius:16px;background:var(--glass);border:1px solid var(--glass-border);text-align:center}
+  .stat b{display:block;font-family:Fraunces,Georgia,serif;font-weight:300;font-size:24px;line-height:1.1}
+  .stat span{display:block;margin-top:4px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+
+  /* ---------- Atmosphere sheet ---------- */
+  .backdrop{position:fixed;inset:0;z-index:9;background:rgba(0,0,0,.12);opacity:0;pointer-events:none;transition:opacity .4s var(--ease)}
+  .sheet{
+    position:fixed;z-index:10;left:50%;bottom:max(12px,env(safe-area-inset-bottom));
+    width:min(560px,calc(100vw - 24px));max-height:min(80dvh,720px);overflow:auto;overscroll-behavior:contain;
+    transform:translate(-50%,24px);opacity:0;pointer-events:none;
+    transition:transform .45s var(--ease),opacity .45s var(--ease);
+    background:var(--sheet);border:1px solid var(--glass-border);border-radius:24px;padding:20px 18px 18px;
+    -webkit-backdrop-filter:blur(24px) saturate(1.3);backdrop-filter:blur(24px) saturate(1.3);
+    box-shadow:0 20px 60px rgba(0,0,0,.18);
+  }
+  body.sheet-open .sheet{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+  body.sheet-open .backdrop{opacity:1;pointer-events:auto}
+  .sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .sheet h2{margin:0;font-family:Fraunces,Georgia,serif;font-weight:400;font-size:22px}
+  .sheet h3{margin:22px 2px 10px;font-size:11.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)}
+  .sheet .icon-btn{width:36px;height:36px}
+  .sheet .icon-btn svg{width:16px;height:16px}
+  .seg{display:flex;padding:3px;border-radius:999px;background:var(--glass);border:1px solid var(--glass-border)}
+  .seg button{flex:1;height:34px;border-radius:999px;font-size:13px;transition:background .3s,color .3s}
+  .seg button.on{background:var(--ink);color:var(--bg)}
+  .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .field{display:block;margin-top:12px}
+  .field span{display:block;font-size:12px;color:var(--ink-soft);margin:0 2px 6px}
+  .field input,.field textarea{width:100%;font:inherit;font-size:14px;color:var(--ink);background:var(--glass);border:1px solid var(--glass-border);border-radius:14px;padding:10px 12px;outline:none;resize:vertical}
+  .field textarea{min-height:76px;font-family:Inter,"Noto Serif Devanagari","Noto Serif Gujarati",sans-serif;line-height:1.5}
+  .field input::placeholder,.field textarea::placeholder{color:var(--ink-soft)}
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:10px}
+  .sw{display:flex;flex-direction:column;align-items:center;gap:7px;padding:8px 4px;border-radius:16px;font-size:12px;transition:background .3s}
+  .sw:hover{background:var(--glass)}
+  .orb{width:46px;height:46px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25);transition:box-shadow .3s}
+  .sw.active .orb{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--ink)}
+  .moods{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+  .mood{text-align:left;padding:12px 14px;border-radius:16px;background:var(--glass);border:1px solid var(--glass-border);transition:background .3s,color .3s}
+  .mood:hover{background:var(--glass-strong)}
+  .mood b{display:block;font-weight:500;font-size:14px;margin-bottom:3px}
+  .mood span{display:block;font-size:12px;line-height:1.35;color:var(--ink-soft)}
+  .mood.active{background:var(--ink);color:var(--bg);border-color:transparent}
+  .mood.active span{color:var(--bg);opacity:.75}
+  .sheet-vol{display:flex;align-items:center;gap:12px;margin-top:12px;font-size:12px;color:var(--ink-soft)}
+  .sheet-note{margin:12px 2px 0;font-size:11.5px;line-height:1.5;color:var(--ink-soft)}
+
+  @media (prefers-reduced-motion:reduce){.brand .dot{animation:none}.quote{transition:opacity 1.5s}}
+</style>
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="top fade">
+  <div class="brand"><span class="dot"></span><span class="word"><span class="w1">pause</span> <span class="w2">a little</span></span></div>
+  <div class="top-actions">
+    <button id="paletteBtn" class="pill glass" title="Colors (P to cycle)"><span class="swatch"></span><span id="paletteName">Dawn</span></button>
+    <button id="moodBtn" class="pill glass" title="Music (N to cycle)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>
+      <span id="moodName">Drift</span>
+    </button>
+    <a id="raagBtn" class="pill glass" href="./#raag" title="Raag: Indian classical room" style="text-decoration:none;color:inherit">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c1.6 2.2 2.4 4.4 2.4 6.4 0 1.6-.8 2.9-2.4 3.8-1.6-.9-2.4-2.2-2.4-3.8C9.6 7.4 10.4 5.2 12 3zM4 10c2.5.2 4.6 1 6.2 2.6.9.9 1.5 2 1.8 3.4-1.6.4-3 .3-4.3-.4C6 14.7 4.8 12.8 4 10zm16 0c-.8 2.8-2 4.7-3.7 5.6-1.3.7-2.7.8-4.3.4.3-1.4.9-2.5 1.8-3.4C15.4 11 17.5 10.2 20 10zM6 18.5h12c-1.5 1.6-3.5 2.5-6 2.5s-4.5-.9-6-2.5z"/></svg><span class="raag-word">Raag</span>
+    </a>
+    <button id="cornerBtn" class="icon-btn glass" title="Motivation corner (C)" aria-label="Toggle motivation corner">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 7.5c-2.9.7-4.6 2.9-4.6 6v3.3c0 .5.4.9.9.9h3.4c.5 0 .9-.4.9-.9v-3.4c0-.5-.4-.9-.9-.9H8c.1-1.7 1-2.8 2.4-3.3.3-.1.5-.4.4-.8l-.2-.6c-.1-.3-.4-.4-.6-.3zm8 0c-2.9.7-4.6 2.9-4.6 6v3.3c0 .5.4.9.9.9h3.4c.5 0 .9-.4.9-.9v-3.4c0-.5-.4-.9-.9-.9H16c.1-1.7 1-2.8 2.4-3.3.3-.1.5-.4.4-.8l-.2-.6c-.1-.3-.4-.4-.6-.3z"/></svg>
+    </button>
+    <button id="fsBtn" class="icon-btn glass" title="Fullscreen (F)" aria-label="Toggle fullscreen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
+  </div>
+</header>
+
+<section class="words" id="words" aria-live="polite">
+  <p class="intent-show" id="intentShow"></p>
+  <blockquote class="quote" id="quote">
+    <p class="q-text" id="qText"></p>
+    <p class="q-mean" id="qMean"></p>
+    <p class="q-by" id="qBy"></p>
+  </blockquote>
+</section>
+
+<main class="app" id="app">
+  <div class="timer-card" id="timerCard">
+    <div class="dial">
+      <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="halo" cx="50" cy="50" r="45"/>
+        <circle class="track" cx="50" cy="50" r="47"/>
+        <circle class="progress" id="progress" cx="50" cy="50" r="47"/>
+      </svg>
+      <div class="readout">
+        <div class="time" id="time">20:00</div>
+        <div class="status" id="status">Ready when you are</div>
+      </div>
+    </div>
+
+    <input id="intent" class="intent" type="text" maxlength="60" placeholder="What will you focus on?" autocomplete="off" spellcheck="false" aria-label="Focus intention">
+
+    <div class="presets fade" id="presets" role="group" aria-label="Duration">
+      <button class="chip glass" data-min="10">10m</button>
+      <button class="chip glass" data-min="15">15m</button>
+      <button class="chip glass" data-min="20">20m</button>
+      <button class="chip glass" data-min="25">25m</button>
+      <button class="chip glass" data-min="45">45m</button>
+      <label class="custom glass" title="Custom minutes"><input id="custom" type="number" min="1" max="180" inputmode="numeric" placeholder="—" aria-label="Custom minutes"><span>min</span></label>
+    </div>
+
+    <div class="controls fade">
+      <button id="resetBtn" class="icon-btn glass" title="Reset (R)" aria-label="Reset">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4v4h4"/></svg>
+      </button>
+      <button id="playBtn" class="play glass" title="Start / pause (Space)" aria-label="Start or pause">
+        <svg class="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 5.8v12.4c0 .6.7 1 1.2.7l9.6-6.2c.5-.3.5-1.1 0-1.4L9.7 5.1c-.5-.3-1.2.1-1.2.7z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="5" width="3.6" height="14" rx="1.2"/><rect x="13.9" y="5" width="3.6" height="14" rx="1.2"/></svg>
+      </button>
+      <button id="soundBtn" class="icon-btn glass" title="Music on/off (M)" aria-label="Toggle music">
+        <svg class="i-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.2a4 4 0 0 1 0 5.6M18.2 6.6a7.6 7.6 0 0 1 0 10.8"/></svg>
+        <svg class="i-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+      </button>
+      <button id="cardSettings" class="icon-btn glass corner-only" title="Settings" aria-label="Open settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+      </button>
+    </div>
+
+    <label class="volume fade" title="Volume">
+      <input id="vol" type="range" min="0" max="1" step="0.01" value="0.6" aria-label="Volume">
+    </label>
+  </div>
+</main>
+
+<footer class="hint fade">
+  <kbd>Space</kbd> start · <kbd>R</kbd> reset · <kbd>C</kbd> corner · <kbd>M</kbd> music · <kbd>P</kbd> colors · <kbd>N</kbd> sound · <kbd>F</kbd> fullscreen
+</footer>
+
+<div class="backdrop" id="backdrop"></div>
+<section class="sheet" id="sheet" role="dialog" aria-label="Atmosphere" aria-modal="true">
+  <div class="sheet-head">
+    <h2>Atmosphere</h2>
+    <button class="icon-btn glass" id="sheetClose" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <h3>Words</h3>
+  <div class="seg" id="modeSeg">
+    <button data-v="timer">Timer only</button>
+    <button data-v="corner">Motivation corner</button>
+  </div>
+  <div class="row" id="kindRow">
+    <button class="chip glass" data-k="calm">Calm lines</button>
+    <button class="chip glass" data-k="poems">Poems &amp; sayings</button>
+  </div>
+  <label class="field"><span>Your name (optional, for a personal touch)</span>
+    <input id="nameInput" type="text" maxlength="24" placeholder="e.g. Jd" autocomplete="off" spellcheck="false">
+  </label>
+  <label class="field"><span>Your own lines, one per row</span>
+    <textarea id="mineInput" rows="3" placeholder="Paste a poem line, a prayer, or a note to yourself…"></textarea>
+  </label>
+  <div class="row" id="speedRow">
+    <button class="chip glass" data-s="30">Change every 30s</button>
+    <button class="chip glass" data-s="60">Every 60s</button>
+  </div>
+
+  <h3>Focus length</h3>
+  <div class="row">
+    <button class="chip glass" data-min="10">10m</button>
+    <button class="chip glass" data-min="15">15m</button>
+    <button class="chip glass" data-min="20">20m</button>
+    <button class="chip glass" data-min="25">25m</button>
+    <button class="chip glass" data-min="45">45m</button>
+    <button class="chip glass" data-min="60">60m</button>
+  </div>
+
+  <h3>Your focus</h3>
+  <div class="stats" id="stats"></div>
+
+  <h3>Colors</h3>
+  <div class="swatches" id="swatches"></div>
+
+  <h3>Sound</h3>
+  <div class="moods" id="moods"></div>
+  <div class="sheet-vol">Volume <input id="volSheet" type="range" min="0" max="1" step="0.01" aria-label="Volume"></div>
+  <p class="sheet-note">Tap a sound to hear a short preview. Everything is composed live in your browser, so it never repeats. Your name and lines stay on this device only.</p>
+</section>
+
+<script>
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('drift:' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('drift:' + k, JSON.stringify(v)); } catch (e) {} }
+  };
+
+  /* ---- shell bridge: lets the app frame switch rooms smoothly ---- */
+  const inShell = window.parent !== window;
+  const toShell = m => { if (inShell) try { parent.postMessage(m, '*'); } catch (e) {} };
+  if (inShell) {
+    new MutationObserver(() => toShell({ title: document.title })).observe(document.querySelector('title'), { childList: true });
+    const tc = document.querySelector('meta[name="theme-color"]');
+    new MutationObserver(() => toShell({ theme: tc.content })).observe(tc, { attributes: true });
+    toShell({ title: document.title, theme: tc.content });
+  }
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = arr => arr[(Math.random() * arr.length) | 0];
+
+  /* ================= Palettes ================= */
+  const LIGHT_INK = '59,47,63', DARK_INK = '236,230,247';
+  const PALETTES = [
+    { name: 'Dawn',     bg: '#f6e7e1', ink: LIGHT_INK,  colors: ['#f9c6c9', '#f7d9b5', '#d8c8f0', '#bfe0e4', '#fbe3ef'] },
+    { name: 'Lagoon',   bg: '#dcebee', ink: '32,52,60', colors: ['#a8d8dc', '#c4e3d4', '#b7c9ef', '#eef4f2', '#9fc7d9'] },
+    { name: 'Meadow',   bg: '#ebefe1', ink: '44,58,42', colors: ['#cfe3b8', '#f3e6bb', '#b9dcc7', '#ecd8c6', '#d6e8d9'] },
+    { name: 'Lilac',    bg: '#ece6f3', ink: LIGHT_INK,  colors: ['#d9c9f2', '#f5cfe0', '#c5d6f5', '#f0e2f7', '#e2d4ea'] },
+    { name: 'Dusk',     bg: '#1c1a2c', ink: DARK_INK,   dark: true, colors: ['#4b3f72', '#7a5c8e', '#2f4a6d', '#a77898', '#356070'] },
+    { name: 'Midnight', bg: '#0e1525', ink: DARK_INK,   dark: true, colors: ['#1f3a68', '#2c5282', '#3b4a7a', '#5a6fa8', '#1e4e5f'] },
+    { name: 'Aurora',   bg: '#0a1a1c', ink: DARK_INK,   dark: true, colors: ['#1d6b5e', '#2f8f7a', '#3a4f8c', '#6b4f9a', '#1f5f6f'] },
+    { name: 'Ember',    bg: '#1d1311', ink: '247,234,224', dark: true, colors: ['#7a3b2e', '#a0573c', '#6e2f45', '#b07a4f', '#4a2a3a'] },
+    { name: 'Plum',     bg: '#1c111f', ink: DARK_INK,   dark: true, colors: ['#5e2b5c', '#8a3f74', '#3f2a66', '#a35c8a', '#4b3060'] },
+    { name: 'Deep Sea', bg: '#06181e', ink: '226,240,244', dark: true, colors: ['#0e4a5c', '#136f7a', '#1d3f6b', '#2a8a8a', '#0f2f4a'] },
+    { name: 'Forest',   bg: '#0e1912', ink: '230,240,228', dark: true, colors: ['#24513a', '#3d6b45', '#5b7a3f', '#2f5f5a', '#1f3d2c'] },
+    { name: 'Cosmos',   bg: '#0b0a16', ink: DARK_INK,   dark: true, colors: ['#2b2463', '#4c2f7a', '#7a3f7f', '#233a6e', '#5e2b5a'] }
+  ];
+  const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const rgbStr = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+
+  let palIdx = (store.get('palette', 0) | 0) % PALETTES.length;
+  const cur = { bg: hex(PALETTES[palIdx].bg), colors: PALETTES[palIdx].colors.map(hex) };
+  let tgt = { bg: cur.bg.slice(), colors: cur.colors.map(c => c.slice()) };
+
+  function applyPalette(i) {
+    palIdx = i;
+    const p = PALETTES[i], d = !!p.dark, r = document.documentElement.style;
+    tgt = { bg: hex(p.bg), colors: p.colors.map(hex) };
+    r.setProperty('--ink', `rgba(${p.ink},.88)`);
+    r.setProperty('--ink-soft', `rgba(${p.ink},.58)`);
+    r.setProperty('--track', `rgba(${p.ink},${d ? .16 : .10})`);
+    r.setProperty('--glass', d ? 'rgba(255,255,255,.07)' : 'rgba(255,255,255,.30)');
+    r.setProperty('--glass-strong', d ? 'rgba(255,255,255,.14)' : 'rgba(255,255,255,.55)');
+    r.setProperty('--glass-border', d ? 'rgba(255,255,255,.14)' : 'rgba(255,255,255,.55)');
+    r.setProperty('--sheet', d ? 'rgba(22,20,34,.80)' : 'rgba(255,255,255,.72)');
+    r.setProperty('--bg', p.bg);
+    r.setProperty('--s1', p.colors[0]); r.setProperty('--s2', p.colors[2]); r.setProperty('--s3', p.colors[3]);
+    $('#paletteName').textContent = p.name;
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', p.bg);
+    document.querySelectorAll('.sw').forEach((el, j) => el.classList.toggle('active', j === i));
+    store.set('palette', i);
+  }
+
+  /* ================= Visuals ================= */
+  const cv = $('#bg'), g = cv.getContext('2d', { alpha: false });
+  let W = 0, H = 0;
+  function resize() {
+    const s = 6;
+    W = cv.width = Math.max(40, Math.ceil(innerWidth / s));
+    H = cv.height = Math.max(40, Math.ceil(innerHeight / s));
+  }
+  addEventListener('resize', resize); resize();
+
+  const blobs = Array.from({ length: 7 }, (_, i) => ({
+    c: i % 5, sx: rand(.55, 1.25), sy: rand(.55, 1.25),
+    px: rand(0, 6.28), py: rand(0, 6.28), pr: rand(0, 6.28),
+    ax: rand(.30, .44), ay: rand(.30, .44), r: rand(.36, .56)
+  }));
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let tAcc = rand(0, 100), last = performance.now();
+
+  function frame(now) {
+    const dt = Math.min(.1, (now - last) / 1000); last = now;
+    tAcc += dt * (reduceMotion ? .03 : .1) * (state === 'running' ? 1.1 : 1);
+    const k = 1 - Math.pow(.3, dt);
+    for (let j = 0; j < 3; j++) cur.bg[j] += (tgt.bg[j] - cur.bg[j]) * k;
+    cur.colors.forEach((c, i) => { for (let j = 0; j < 3; j++) c[j] += (tgt.colors[i][j] - c[j]) * k; });
+
+    g.fillStyle = rgbStr(cur.bg, 1);
+    g.fillRect(0, 0, W, H);
+    const M = Math.max(W, H), t = tAcc;
+    for (const b of blobs) {
+      const x = W * (.5 + b.ax * Math.sin(t * b.sx + b.px) + .08 * Math.sin(t * b.sx * 2.3 + b.py));
+      const y = H * (.5 + b.ay * Math.cos(t * b.sy + b.py) + .08 * Math.cos(t * b.sy * 1.9 + b.px));
+      const r = M * (b.r + .08 * Math.sin(t * .9 + b.pr));
+      const c = cur.colors[b.c];
+      const gr = g.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, rgbStr(c, .85)); gr.addColorStop(.5, rgbStr(c, .35)); gr.addColorStop(1, rgbStr(c, 0));
+      g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ================= Soundscapes ================= */
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  const MOODS = [
+    { id: 'drift', name: 'Drift', desc: 'Airy pads and soft glass bells',
+      chords: [[50, 57, 61, 64, 66], [47, 54, 57, 62, 64], [43, 50, 59, 66, 69], [45, 52, 59, 61, 64]],
+      len: 14, attack: 4, release: 6, cutoff: 950, lfoRate: .045, lfoDepth: 380, voice: 'soft', padGain: .5,
+      bells: [{ type: 'bell', notes: [69, 71, 74, 76, 78, 81, 83, 86], min: 2.5, max: 8, prob: .8, vel: [.45, 1], pair: .3 }],
+      noise: { type: 'air', gain: .045 } },
+    { id: 'rain', name: 'Rainfall', desc: 'Warm chords under gentle rain',
+      chords: [[41, 48, 55, 60, 63], [37, 49, 56, 60, 65], [44, 51, 56, 60, 63], [39, 46, 55, 58, 62]],
+      len: 16, attack: 5, release: 7, cutoff: 720, lfoRate: .04, lfoDepth: 260, voice: 'warm', padGain: .45,
+      bells: [{ type: 'bell', notes: [72, 75, 77, 80, 82, 84], min: 4, max: 10, prob: .6, vel: [.35, .8], pair: .2 }],
+      noise: { type: 'rain', gain: .05 } },
+    { id: 'ocean', name: 'Ocean', desc: 'Slow waves and shimmering light',
+      chords: [[40, 47, 56, 59, 63, 66], [45, 52, 56, 59, 61], [42, 49, 57, 61, 64], [47, 54, 59, 63, 66]],
+      len: 18, attack: 6, release: 8, cutoff: 820, lfoRate: .035, lfoDepth: 320, voice: 'soft', padGain: .42,
+      bells: [{ type: 'shimmer', notes: [76, 78, 80, 83, 85, 88], min: 5, max: 11, prob: .7, vel: [.5, 1], pair: .25 }],
+      noise: { type: 'ocean', gain: .07 } },
+    { id: 'night', name: 'Night', desc: 'Deep, slow minor chords for late hours',
+      chords: [[45, 52, 60, 64, 67], [41, 48, 57, 60, 64], [43, 50, 55, 59, 62], [40, 47, 55, 59, 64]],
+      len: 20, attack: 6, release: 8, cutoff: 600, lfoRate: .03, lfoDepth: 240, voice: 'warm', padGain: .5,
+      bells: [{ type: 'bell', notes: [69, 72, 74, 76, 79], min: 6, max: 14, prob: .55, vel: [.3, .65], pair: .15 }],
+      noise: { type: 'air', gain: .035 } },
+    { id: 'temple', name: 'Temple', desc: 'Warm drone with singing bowls',
+      chords: [], drone: [36, 43, 48], cutoff: 1200, lfoRate: .05, lfoDepth: 300, voice: 'soft', padGain: .5,
+      bells: [
+        { type: 'bowl', notes: [60, 62, 64, 67, 69], min: 6, max: 12, prob: .85, vel: [.55, 1] },
+        { type: 'pluck', notes: [72, 74, 76, 79, 81], min: 3, max: 7, prob: .45, vel: [.25, .5], pair: .3 }
+      ],
+      noise: { type: 'air', gain: .03 } },
+    { id: 'lullaby', name: 'Lullaby', desc: 'A tender music box, softly turning',
+      chords: [[48, 55, 60, 64], [45, 52, 57, 60], [41, 48, 57, 60], [43, 50, 55, 59]],
+      len: 10, attack: 3, release: 5, cutoff: 1000, lfoRate: .05, lfoDepth: 300, voice: 'soft', padGain: .32,
+      arp: { type: 'musicbox', step: .6, octave: 24, pattern: [0, 1, 2, 3, 2, 1, 2, 0], prob: .85 },
+      noise: { type: 'air', gain: .02 } },
+    { id: 'cosmos', name: 'Cosmos', desc: 'Vast floating space pads',
+      chords: [[38, 45, 52, 57, 64], [36, 43, 50, 55, 62], [34, 41, 48, 53, 60], [36, 43, 50, 57, 64]],
+      len: 22, attack: 7, release: 9, cutoff: 1400, lfoRate: .028, lfoDepth: 520, voice: 'glass', padGain: .42,
+      bells: [{ type: 'shimmer', notes: [74, 76, 81, 83, 86, 88, 93], min: 3, max: 7, prob: .7, vel: [.4, .9], pair: .35 }],
+      noise: { type: 'air', gain: .03 } }
+  ];
+  const moodById = id => MOODS.find(m => m.id === id) || MOODS[0];
+
+  class Ambient {
+    constructor() { this.ctx = null; this.vol = .6; this.tok = 0; this.playing = false; this.mood = MOODS[0]; this.layer = null; }
+    init() {
+      if (this.ctx) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const c = this.ctx = new AC();
+      this.comp = c.createDynamicsCompressor();
+      this.comp.threshold.value = -20; this.comp.ratio.value = 3; this.comp.knee.value = 12;
+      this.comp.connect(c.destination);
+      this.master = c.createGain(); this.master.gain.value = 0; this.master.connect(this.comp);
+      this.ir = this.impulse(5.5, 2.6);
+      this.reverb = c.createConvolver(); this.reverb.buffer = this.ir;
+      const wet = c.createGain(); wet.gain.value = .6;
+      this.reverb.connect(wet).connect(this.master);
+      this.dry = c.createGain(); this.dry.gain.value = .55; this.dry.connect(this.master);
+      const len = c.sampleRate * 6;
+      this.white = c.createBuffer(1, len, c.sampleRate);
+      this.brown = c.createBuffer(1, len, c.sampleRate);
+      const w = this.white.getChannelData(0), b = this.brown.getChannelData(0);
+      let lastN = 0;
+      for (let i = 0; i < len; i++) { const x = Math.random() * 2 - 1; w[i] = x; lastN = (lastN + .02 * x) / 1.02; b[i] = lastN * 3.5; }
+      this.chimeBus = c.createGain(); this.chimeBus.gain.value = .5;
+      const cvb = c.createConvolver(); cvb.buffer = this.ir;
+      const cw = c.createGain(); cw.gain.value = .5;
+      this.chimeBus.connect(this.comp); this.chimeBus.connect(cvb); cvb.connect(cw).connect(this.comp);
+      this.timer = setInterval(() => this.tick(), 400);
+    }
+    impulse(sec, decay) {
+      const c = this.ctx, rate = c.sampleRate, len = Math.floor(rate * sec), buf = c.createBuffer(2, len, rate);
+      for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay); }
+      return buf;
+    }
+    ramp(param, v, sec) { const n = this.ctx.currentTime; param.cancelScheduledValues(n); param.setValueAtTime(param.value, n); param.linearRampToValueAtTime(v, n + sec); }
+    buildLayer(mood) {
+      const c = this.ctx, L = { mood, sources: [] };
+      L.dryF = c.createGain(); L.wetF = c.createGain(); L.dryF.gain.value = 0; L.wetF.gain.value = 0;
+      L.dryF.connect(this.dry); L.wetF.connect(this.reverb);
+      L.pad = c.createGain(); L.pad.gain.value = mood.padGain;
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = mood.cutoff; lp.Q.value = .4;
+      L.pad.connect(lp); lp.connect(L.dryF); lp.connect(L.wetF);
+      const lfo = c.createOscillator(), lfoG = c.createGain();
+      lfo.frequency.value = mood.lfoRate; lfoG.gain.value = mood.lfoDepth;
+      lfo.connect(lfoG).connect(lp.frequency); lfo.start(); L.sources.push(lfo);
+      L.bell = c.createGain(); L.bell.gain.value = .16;
+      const bd = c.createGain(); bd.gain.value = .35;
+      L.bell.connect(L.wetF); L.bell.connect(bd).connect(L.dryF);
+      if (mood.drone) mood.drone.forEach((m, i) => {
+        const f = mtof(m), env = c.createGain(); env.gain.value = .07 / Math.sqrt(i + 1);
+        const o1 = c.createOscillator(); o1.type = 'sine'; o1.frequency.value = f;
+        const o2 = c.createOscillator(); o2.type = 'triangle'; o2.frequency.value = f; o2.detune.value = 4 + i * 2;
+        const g2 = c.createGain(); g2.gain.value = .35;
+        const trem = c.createOscillator(), tg = c.createGain(); trem.frequency.value = .07 + i * .031; tg.gain.value = .02;
+        trem.connect(tg).connect(env.gain);
+        o1.connect(env); o2.connect(g2).connect(env); env.connect(L.pad);
+        [o1, o2, trem].forEach(o => { o.start(); L.sources.push(o); });
+      });
+      this.buildNoise(L, mood.noise);
+      const n = c.currentTime;
+      L.nextChord = n + .3; L.ci = 0; L.chordLog = [];
+      L.bellNext = (mood.bells || []).map(b => n + rand(1.5, 1.5 + b.min));
+      L.arpNext = n + .5; L.arpI = 0;
+      return L;
+    }
+    noiseSrc(L, buf) { const s = this.ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.start(0, rand(0, buf.duration)); L.sources.push(s); return s; }
+    buildNoise(L, n) {
+      if (!n) return;
+      const c = this.ctx;
+      const filt = (type, f) => { const x = c.createBiquadFilter(); x.type = type; x.frequency.value = f; return x; };
+      const gain = v => { const x = c.createGain(); x.gain.value = v; return x; };
+      if (n.type === 'air') {
+        this.noiseSrc(L, this.brown).connect(filt('lowpass', 420)).connect(gain(n.gain)).connect(L.dryF);
+      } else if (n.type === 'rain') {
+        const lp = filt('lowpass', 5200), g1 = gain(n.gain * .55);
+        this.noiseSrc(L, this.white).connect(filt('highpass', 700)).connect(lp).connect(g1);
+        g1.connect(L.dryF); g1.connect(gain(.35)).connect(L.wetF);
+        const lfo = c.createOscillator(); lfo.frequency.value = .06;
+        lfo.connect(gain(1300)).connect(lp.frequency); lfo.start(); L.sources.push(lfo);
+        this.noiseSrc(L, this.brown).connect(filt('lowpass', 300)).connect(gain(n.gain * .9)).connect(L.dryF);
+      } else if (n.type === 'ocean') {
+        const lp = filt('lowpass', 650), g1 = gain(n.gain * .5);
+        this.noiseSrc(L, this.brown).connect(lp).connect(g1);
+        g1.connect(L.dryF); g1.connect(gain(.3)).connect(L.wetF);
+        const lfo = c.createOscillator(); lfo.frequency.value = .085;
+        lfo.connect(gain(n.gain * .5)).connect(g1.gain);
+        lfo.connect(gain(450)).connect(lp.frequency);
+        lfo.start(); L.sources.push(lfo);
+      }
+    }
+    fadeLayer(L, to, sec) { this.ramp(L.dryF.gain, to, sec); this.ramp(L.wetF.gain, to, sec); }
+    killLayer(L) { L.sources.forEach(s => { try { s.stop(); } catch (e) {} }); try { L.dryF.disconnect(); L.wetF.disconnect(); } catch (e) {} }
+    dropLayer(L) { this.fadeLayer(L, 0, 3); setTimeout(() => this.killLayer(L), 3600); }
+    switchLayer() {
+      const old = this.layer;
+      if (old) this.dropLayer(old);
+      const L = this.buildLayer(this.mood);
+      this.fadeLayer(L, 1, old ? 3 : .4);
+      this.layer = L; this.tick();
+    }
+    tick() {
+      const L = this.layer;
+      if (!this.ctx || !L || this.ctx.state !== 'running') return;
+      const m = L.mood, ahead = this.ctx.currentTime + 4;
+      if (m.chords.length) while (L.nextChord < ahead) {
+        const notes = m.chords[L.ci++ % m.chords.length];
+        L.chordLog.push({ t: L.nextChord, notes }); if (L.chordLog.length > 6) L.chordLog.shift();
+        this.chord(L, notes, L.nextChord); L.nextChord += m.len;
+      }
+      (m.bells || []).forEach((b, i) => {
+        while (L.bellNext[i] < ahead) {
+          const t = L.bellNext[i];
+          if (Math.random() < b.prob) {
+            const v = rand(b.vel[0], b.vel[1]);
+            this.voice(b.type, pick(b.notes), t, v, L.bell);
+            if (b.pair && Math.random() < b.pair) this.voice(b.type, pick(b.notes), t + rand(.45, .85), v * .7, L.bell);
+          }
+          L.bellNext[i] += rand(b.min, b.max);
+        }
+      });
+      if (m.arp) while (L.arpNext < ahead) {
+        let ch = L.chordLog[0];
+        for (const e of L.chordLog) if (e.t <= L.arpNext) ch = e;
+        if (ch && Math.random() < m.arp.prob) {
+          const idx = m.arp.pattern[L.arpI % m.arp.pattern.length];
+          this.voice(m.arp.type, ch.notes[Math.min(idx, ch.notes.length - 1)] + m.arp.octave, L.arpNext, rand(.45, .8), L.bell);
+        }
+        L.arpI++; L.arpNext += m.arp.step;
+      }
+    }
+    chord(L, notes, t) {
+      const c = this.ctx, m = L.mood, scale = 5 / notes.length, end = t + m.len + m.release;
+      notes.forEach((n, i) => {
+        const f = mtof(n), peak = (i === 0 ? .07 : .045) * scale, env = c.createGain();
+        env.gain.setValueAtTime(0, t); env.gain.linearRampToValueAtTime(peak, t + m.attack);
+        env.gain.setValueAtTime(peak, t + m.len); env.gain.linearRampToValueAtTime(0, end);
+        env.connect(L.pad);
+        const parts = m.voice === 'warm' ? [['sine', 0, 1], ['sawtooth', -7, .06], ['triangle', 7, .25]]
+          : m.voice === 'glass' ? [['sine', -9, .7], ['sine', 9, .7], ['sine', 1200, .1]]
+          : [['sine', 0, 1], ['triangle', rand(6, 10), .35]];
+        parts.forEach(([type, det, lvl]) => {
+          const o = c.createOscillator(); o.type = type; o.frequency.value = f; o.detune.value = det;
+          const gg = c.createGain(); gg.gain.value = lvl;
+          o.connect(gg).connect(env); o.start(t); o.stop(end + .2);
+        });
+      });
+    }
+    partial(f, t, peak, attack, decay, type, dest) {
+      const c = this.ctx, env = c.createGain();
+      env.gain.setValueAtTime(0, t); env.gain.linearRampToValueAtTime(peak, t + attack);
+      env.gain.exponentialRampToValueAtTime(.0001, t + attack + decay); env.connect(dest);
+      const o = c.createOscillator(); o.type = type || 'sine'; o.frequency.value = f;
+      o.connect(env); o.start(t); o.stop(t + attack + decay + .1);
+    }
+    voice(type, m, t, vel, dest) {
+      const f = mtof(m), P = (...a) => this.partial(...a);
+      switch (type) {
+        case 'shimmer': P(f, t, .13 * vel, 1.4, 6, 'sine', dest); P(f * 2.003, t, .03 * vel, 1.8, 4, 'sine', dest); break;
+        case 'bowl': [[1, 1, 10], [1.004, .6, 10], [2.76, .4, 6], [5.4, .18, 3.5], [8.93, .07, 2]].forEach(([r, a, d]) => P(f * r, t, .2 * vel * a, .05, d, 'sine', dest)); break;
+        case 'pluck': P(f, t, .18 * vel, .006, 2.2, 'triangle', dest); P(f * 2, t, .03 * vel, .006, 1.2, 'sine', dest); break;
+        case 'musicbox': P(f, t, .15 * vel, .004, 2.8, 'sine', dest); P(f * 2, t, .035 * vel, .004, 1.4, 'sine', dest); P(f * 3, t, .02 * vel, .003, .6, 'sine', dest); break;
+        default: P(f, t, .22 * vel, .015, 4.5, 'sine', dest); P(f * 2.001, t, .026 * vel, .015, 3, 'sine', dest);
+      }
+    }
+    play() {
+      this.init(); this.tok++; this.playing = true;
+      if (this.ctx.state !== 'running') this.ctx.resume();
+      if (!this.layer || this.layer.mood !== this.mood) this.switchLayer();
+      this.ramp(this.master.gain, this.vol * .9, 2.5);
+    }
+    stop(fade = .8) {
+      if (!this.ctx) return;
+      this.playing = false;
+      const tok = ++this.tok;
+      this.ramp(this.master.gain, 0, fade);
+      setTimeout(() => { if (tok === this.tok && this.ctx.state === 'running') this.ctx.suspend(); }, fade * 1000 + 200);
+    }
+    setMood(mood) {
+      if (mood === this.mood) return;
+      this.mood = mood;
+      if (!this.ctx) return;
+      if (this.playing) this.switchLayer();
+      else if (this.layer) { this.killLayer(this.layer); this.layer = null; }
+    }
+    setVolume(v) { this.vol = v; if (this.ctx && this.playing) this.ramp(this.master.gain, v * .9, .15); }
+    chime() {
+      this.init();
+      if (this.ctx.state !== 'running') this.ctx.resume();
+      const tok = ++this.tok, t = this.ctx.currentTime + .15;
+      [81, 78, 74].forEach((m, i) => this.voice('bell', m, t + i * .7, .9, this.chimeBus));
+      this.voice('bell', 69, t + 2.1, .6, this.chimeBus);
+      setTimeout(() => { if (tok === this.tok && !this.playing && this.ctx.state === 'running') this.ctx.suspend(); }, 8000);
+    }
+  }
+  const audio = new Ambient();
+
+  /* ================= Words ================= */
+  const CALM = {
+    any: [
+      'There’s no rush. Just this next small step.',
+      'You don’t have to feel ready to keep going.',
+      'Slow progress is still progress.',
+      'Breathe in. Let your shoulders drop. Continue.',
+      'One thing at a time is enough.',
+      'The work is quietly adding up.',
+      'Be gentle with yourself while you work hard.',
+      'You don’t need to finish everything today. Just this part.',
+      'Stay with it a little longer. It gets clearer.',
+      'Rivers don’t hurry, and still they reach the sea.',
+      'It’s okay if this feels hard. That’s how growing feels.',
+      'Small, steady steps carry you further than rushed ones.',
+      'Let the noise settle. Just you and this one task.',
+      'You’re building something, even when it doesn’t feel like it.',
+      'Doubt can sit beside you. It doesn’t get to steer.',
+      'Progress is often quiet. Keep listening.',
+      'Nothing to prove right now. Just something to do, and do well.',
+      'A calm mind sees the next step more clearly.',
+      'Rest your eyes for one breath, then return.',
+      'Patience is part of the work.',
+      'A mistake is only a signpost. Adjust, and continue.',
+      'Trust the process you’ve started.',
+      'Mountains are climbed one quiet step at a time.',
+      'Showing up was the hardest part, and you’ve already done it.',
+      'What you learn today will stay with you.',
+      'Go softly. You’ll still get there.',
+      'Today’s effort is a gift to tomorrow.',
+      'Focus is a kind of peace.',
+      'Even the tallest tree grew one ring at a time.',
+      'Unclench your jaw. Soften your hands. Carry on.',
+      'Not everything needs to be perfect. It needs to be done with care.',
+      'Clarity comes to those who keep gently showing up.',
+      'This moment, fully here, is enough.',
+      'You are allowed to take this slowly.'
+    ],
+    start: [
+      'Settle in. There’s nowhere else you need to be.',
+      'Begin gently. The momentum will come.',
+      'Take a slow breath. Let’s start.',
+      'Set the world aside for a little while.'
+    ],
+    mid: [
+      'You’re in the middle now. Steady is good.',
+      'Halfway is a quiet kind of achievement.',
+      'Keep your pace. You’re doing fine.',
+      'Look how far you’ve come since you sat down.'
+    ],
+    end: [
+      'Almost there. Finish softly.',
+      'Just a few minutes more. Stay with it.',
+      'The end is close. Let it come calmly.',
+      'You’ve given this your time. Close it with care.'
+    ],
+    done: [
+      'Well done. Rest your eyes and breathe.',
+      'That was time well spent. Take a gentle pause.'
+    ]
+  };
+  const PERSONAL = {
+    any: [
+      '{n}, you’re doing better than you think.',
+      'It’s okay if this part feels slow, {n}. You’re still moving.',
+      'I know it feels a little heavy right now, {n}. You’ll come through it.',
+      'Keep going, {n}. Quietly, steadily.',
+      '{n}, you’ve handled hard things before. This is just one more.',
+      'Breathe, {n}. You’re right where you need to be.',
+      'You’re doing great, {n}. Really.',
+      '{n}, be proud of the effort, not just the outcome.',
+      'Little by little, {n}. That’s how it’s done.',
+      'No one sees this quiet work, {n}, but it counts.',
+      'It’s alright to go slowly, {n}. Just don’t stop.',
+      'You’re growing with every line, {n}.',
+      'Feeling stuck is temporary, {n}. Clarity is on its way.',
+      '{n}, the future you is thankful for this hour.',
+      'Take your time, {n}. You’ve got this.',
+      'Be kind to yourself today, {n}. You’re trying, and that matters.'
+    ],
+    start: ['Welcome back, {n}. Let’s begin, gently.', 'Glad you’re here, {n}. One small step first.'],
+    mid: ['Halfway, {n}. You’re holding steady.', '{n}, look at you. Still here, still going.'],
+    end: ['Almost done, {n}. Finish softly.', 'Just a little more, {n}. You’re nearly there.'],
+    done: ['Well done, {n}. Rest now.', 'You did it, {n}. Take a slow breath.']
+  };
+  // Classical and folk works only (centuries old / traditional). Meanings are gentle paraphrases.
+  const POEMS = [
+    { text: 'धीरे-धीरे रे मना, धीरे सब कुछ होय।\nमाली सींचे सौ घड़ा, ऋतु आए फल होय॥', mean: 'Slowly, O mind, everything happens in its time. The gardener may pour a hundred pots, yet fruit comes only in its season.', by: 'Kabir' },
+    { text: 'जिन खोजा तिन पाइयाँ, गहरे पानी पैठ।\nमैं बपुरा बूडन डरा, रहा किनारे बैठ॥', mean: 'Those who searched, diving into deep water, found it. Afraid of drowning, I sat on the shore. Go a little deeper.', by: 'Kabir' },
+    { text: 'ऐसी वाणी बोलिए, मन का आपा खोय।\nऔरन को शीतल करे, आपहुँ शीतल होय॥', mean: 'Speak words that let go of ego. They cool the hearts of others, and bring calm to you as well.', by: 'Kabir' },
+    { text: 'करत-करत अभ्यास के, जड़मति होत सुजान।\nरसरी आवत जात ते, सिल पर परत निसान॥', mean: 'With steady practice, even a slow mind grows wise. A soft rope, passing again and again, leaves its mark on stone.', by: 'Vrind' },
+    { text: 'रहिमन चुप हो बैठिये, देखि दिनन के फेर।\nजब नीके दिन आइहैं, बनत न लगिहैं देर॥', mean: 'When days turn difficult, sit quietly and wait. When good days return, things will fall into place quickly.', by: 'Rahim' },
+    { text: 'तुलसी साथी विपत्ति के, विद्या विनय विवेक।\nसाहस सुकृति सुसत्यव्रत, राम भरोसो एक॥', mean: 'In hard times your true companions are learning, humility, wisdom, courage, good deeds, truthfulness and faith.', by: 'Tulsidas' },
+    { text: 'कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।\nमा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि॥', mean: 'Your part is the work itself, never its fruits. Don’t work only for the reward, and don’t turn away from the work.', by: 'Bhagavad Gita 2.47' },
+    { text: 'योगस्थः कुरु कर्माणि सङ्गं त्यक्त्वा धनञ्जय।', mean: 'Steady within, do your work, letting go of clinging.', by: 'Bhagavad Gita 2.48' },
+    { text: 'योगः कर्मसु कौशलम्', mean: 'Yoga is skill in action.', by: 'Bhagavad Gita 2.50' },
+    { text: 'उद्धरेदात्मनात्मानं नात्मानमवसादयेत्।', mean: 'Lift yourself up by your own self. Do not let yourself sink.', by: 'Bhagavad Gita 6.5' },
+    { text: 'असंशयं महाबाहो मनो दुर्निग्रहं चलम्।\nअभ्यासेन तु कौन्तेय वैराग्येण च गृह्यते॥', mean: 'The mind is restless and hard to hold, no doubt. Yet through practice and letting go, it can be steadied.', by: 'Bhagavad Gita 6.35' },
+    { text: 'उद्यमेन हि सिध्यन्ति कार्याणि न मनोरथैः।', mean: 'Work is fulfilled through steady effort, not by wishing alone.', by: 'Subhashita' },
+    { text: 'बूँद-बूँद से घड़ा भरता है।', mean: 'Drop by drop, the pot is filled.', by: 'Hindi saying' },
+    { text: 'ટીપે ટીપે સરોવર ભરાય.', mean: 'Drop by drop, the lake fills.', by: 'Gujarati saying' },
+    { text: 'ધીરજનાં ફળ મીઠાં.', mean: 'The fruits of patience are sweet.', by: 'Gujarati saying' },
+    { text: 'મન હોય તો માળવે જવાય.', mean: 'If the heart is willing, even faraway Malwa can be reached.', by: 'Gujarati saying' },
+    { text: 'જાગ્યા ત્યારથી સવાર.', mean: 'Morning begins whenever you wake. It is never too late to begin.', by: 'Gujarati saying' },
+    { text: 'जदि तोर डाक शुने केउ ना आसे,\nतबे एकला चलो रे॥', mean: 'If no one answers your call, walk on alone, calmly and without fear.', by: 'Rabindranath Tagore' },
+    // Kabir
+    { text: 'साधु ऐसा चाहिए, जैसा सूप सुभाय।\nसार-सार को गहि रहै, थोथा देई उड़ाय॥', mean: 'Be like a winnowing basket: keep what is essential, and let the empty husk blow away.', by: 'Kabir' },
+    { text: 'कस्तूरी कुंडल बसे, मृग ढूँढे बन माहि।\nऐसे घट-घट राम हैं, दुनिया देखे नाहिं॥', mean: 'The musk lies within the deer, yet it searches the forest. What you seek is already within you.', by: 'Kabir' },
+    { text: 'माला फेरत जुग भया, फिरा न मन का फेर।\nकर का मनका डार दे, मन का मनका फेर॥', mean: 'Ages passed turning beads, yet the mind did not turn. Set the beads down; turn the mind itself.', by: 'Kabir' },
+    { text: 'पोथी पढ़ि पढ़ि जग मुआ, पंडित भया न कोय।\nढाई आखर प्रेम का, पढ़े सो पंडित होय॥', mean: 'Reading books alone made no one wise. One who understands the few letters of love is truly learned.', by: 'Kabir' },
+    { text: 'निंदक नियरे राखिए, आँगन कुटी छवाय।\nबिन पानी, साबुन बिना, निर्मल करे सुभाय॥', mean: 'Keep honest critics close. Without water or soap, they gently make you better.', by: 'Kabir' },
+    { text: 'मन के हारे हार है, मन के जीते जीत।', mean: 'Lose heart and you have lost; keep heart and you have already won.', by: 'Hindi saying' },
+    // Rahim
+    { text: 'रहिमन देखि बड़ेन को, लघु न दीजिये डारि।\nजहाँ काम आवे सुई, कहा करे तरवारि॥', mean: 'Don’t discard small things for the big ones. Where a needle is needed, a sword is of no use. Small steps matter.', by: 'Rahim' },
+    { text: 'जो रहीम उत्तम प्रकृति, का करि सकत कुसंग।\nचंदन विष व्यापत नहीं, लिपटे रहत भुजंग॥', mean: 'A good nature is not spoiled by its surroundings. Snakes may coil around sandalwood, yet it stays fragrant.', by: 'Rahim' },
+    { text: 'रहिमन विपदा हू भली, जो थोरे दिन होय।\nहित अनहित या जगत में, जानि परत सब कोय॥', mean: 'Even a brief hardship has its gift: it shows you clearly who and what truly stands by you.', by: 'Rahim' },
+    // Tulsidas
+    { text: 'कर्म प्रधान बिस्व करि राखा।\nजो जस करइ सो तस फलु चाखा॥', mean: 'The world rests on action. As one does, so one receives.', by: 'Tulsidas · Ramcharitmanas' },
+    { text: 'धीरज धरम मित्र अरु नारी।\nआपद काल परिखिअहिं चारी॥', mean: 'Patience, virtue, friendship and companionship are truly known in difficult times.', by: 'Tulsidas · Ramcharitmanas' },
+    { text: 'तुलसी मीठे बचन ते, सुख उपजत चहुँ ओर।\nबसीकरन इक मंत्र है, परिहरु बचन कठोर॥', mean: 'Sweet words spread happiness all around. Let go of harsh speech; gentleness wins every heart.', by: 'Tulsidas' },
+    // Bhagavad Gita
+    { text: 'मात्रास्पर्शास्तु कौन्तेय शीतोष्णसुखदुःखदाः।\nआगमापायिनोऽनित्यास्तांस्तितिक्षस्व भारत॥', mean: 'Heat and cold, pleasure and pain come and go; they do not last. Bear them patiently.', by: 'Bhagavad Gita 2.14' },
+    { text: 'स्वल्पमप्यस्य धर्मस्य त्रायते महतो भयात्॥', mean: 'Even a little of this steady practice protects you from great fear.', by: 'Bhagavad Gita 2.40' },
+    { text: 'नियतं कुरु कर्म त्वं कर्म ज्यायो ह्यकर्मणः।', mean: 'Do the work that is yours to do; action is better than inaction.', by: 'Bhagavad Gita 3.8' },
+    { text: 'न हि ज्ञानेन सदृशं पवित्रमिह विद्यते।', mean: 'Nothing in this world purifies like knowledge.', by: 'Bhagavad Gita 4.38' },
+    { text: 'युक्ताहारविहारस्य युक्तचेष्टस्य कर्मसु।\nयुक्तस्वप्नावबोधस्य योगो भवति दुःखहा॥', mean: 'For one balanced in food and rest, in work, and in sleep and waking, practice dissolves sorrow.', by: 'Bhagavad Gita 6.17' },
+    // Sanskrit wisdom
+    { text: 'शनैः कन्था शनैः पन्थाः शनैः पर्वतलङ्घनम्।\nशनैर्विद्या शनैर्वित्तं पञ्चैतानि शनैः शनैः॥', mean: 'Slowly a quilt is sewn, slowly a road is walked, slowly a mountain is crossed. Learning and wealth too come slowly, step by step.', by: 'Subhashita' },
+    { text: 'क्षणशः कणशश्चैव विद्यामर्थं च साधयेत्।', mean: 'Moment by moment, grain by grain, gather learning and wealth.', by: 'Subhashita' },
+    { text: 'विद्या ददाति विनयं विनयाद्याति पात्रताम्।', mean: 'Knowledge gives humility, and humility makes you worthy.', by: 'Hitopadesha' },
+    { text: 'असतो मा सद्गमय। तमसो मा ज्योतिर्गमय।\nमृत्योर्मा अमृतं गमय॥', mean: 'Lead me from the unreal to the real, from darkness to light, from death to the timeless.', by: 'Brihadaranyaka Upanishad' },
+    { text: 'सर्वे भवन्तु सुखिनः सर्वे सन्तु निरामयाः।', mean: 'May all be happy. May all be free from illness.', by: 'Shanti mantra' },
+    { text: 'सत्यमेव जयते', mean: 'Truth alone prevails.', by: 'Mundaka Upanishad' },
+    // Hindi sayings
+    { text: 'जहाँ चाह, वहाँ राह।', mean: 'Where there is a will, there is a way.', by: 'Hindi saying' },
+    { text: 'सहज पके सो मीठा होय।', mean: 'What ripens naturally, in its own time, is the sweetest.', by: 'Hindi saying' },
+    // Gujarati
+    { text: 'ઉતાવળે આંબા ન પાકે.', mean: 'Mangoes don’t ripen in a hurry.', by: 'Gujarati saying' },
+    { text: 'વાવો તેવું લણો.', mean: 'As you sow, so shall you reap.', by: 'Gujarati saying' },
+    { text: 'પાણી પહેલાં પાળ બાંધવી.', mean: 'Build the embankment before the water comes. Prepare calmly, ahead of time.', by: 'Gujarati saying' },
+    { text: 'સંપ ત્યાં જંપ.', mean: 'Where there is harmony, there is peace.', by: 'Gujarati saying' },
+    { text: 'કરતાં જાળ કરોળિયો, ભોંય પડી પછડાય;\nવણ તૂટેલે તાંતણે, ઉપર ચડવા જાય.', mean: 'Weaving its web, the spider falls to the ground again and again, yet climbs back up on its unbroken thread.', by: 'Gujarati verse' },
+    { text: 'વૈષ્ણવ જન તો તેને કહીએ,\nજે પીડ પરાઈ જાણે રે.', mean: 'Call that person truly good who feels the pain of others.', by: 'Narsinh Mehta' }
+  ];
+
+  const defaultWords = { mode: 'timer', calm: true, poems: true, name: '', mine: '', speed: 30 };
+  const W8 = Object.assign({}, defaultWords, store.get('words', {}));
+  const saveWords = () => store.set('words', W8);
+  const isCorner = () => W8.mode === 'corner';
+  let recent = [], phaseShown = new Set(), wordsTimer = null, wordsGen = 0;
+
+  function currentPhase() {
+    if (state === 'done') return 'done';
+    if (state !== 'running') return null;
+    const el = durationMs - remaining, f = el / durationMs;
+    if (f < .1) return 'start';
+    if (remaining <= Math.min(180000, durationMs * .2)) return 'end';
+    if (f > .45 && f < .62) return 'mid';
+    return null;
+  }
+  const nameStr = () => W8.name.trim();
+  const fillName = s => s.replace(/\{n\}/g, nameStr());
+  const mineLines = () => W8.mine.split('\n').map(s => s.trim()).filter(Boolean);
+
+  function pickLine() {
+    const ph = currentPhase(), name = nameStr();
+    if (ph && !phaseShown.has(ph) && W8.calm) {
+      phaseShown.add(ph);
+      const src = name && Math.random() < .6 ? PERSONAL[ph] : CALM[ph];
+      return { text: fillName(pick(src)), kind: 'calm' };
+    }
+    const pools = [];
+    if (W8.calm) { pools.push([name ? 2 : 3, CALM.any, 'calm']); if (name) pools.push([1.6, PERSONAL.any, 'personal']); }
+    if (W8.poems) pools.push([W8.calm ? (name ? 3.6 : 3) : 3, POEMS, 'poem']); // ~half of all lines
+    const mine = mineLines();
+    if (mine.length) pools.push([pools.length ? 1.2 : 3, mine, 'mine']);
+    if (!pools.length) pools.push([1, CALM.any, 'calm']);
+    let total = pools.reduce((a, p) => a + p[0], 0), r = Math.random() * total, pool = pools[0];
+    for (const p of pools) { if ((r -= p[0]) <= 0) { pool = p; break; } }
+    let item, key;
+    for (let i = 0; i < 12; i++) {
+      item = pick(pool[1]); key = typeof item === 'string' ? item : item.text;
+      if (!recent.includes(key) || pool[1].length <= 1) break;
+    }
+    recent.push(key); if (recent.length > 30) recent.shift();
+    if (pool[2] === 'poem') return { text: item.text, mean: item.mean, by: item.by, kind: 'poem' };
+    return { text: fillName(item), kind: pool[2] };
+  }
+
+  const qEl = $('#quote');
+  function showLine(line) {
+    $('#qText').textContent = line.text;
+    $('#qMean').textContent = line.mean || '';
+    $('#qBy').textContent = line.by || '';
+    qEl.classList.toggle('poem', line.kind === 'poem' || /[ऀ-૿]/.test(line.text));
+  }
+  function nextWords(soon) {
+    clearTimeout(wordsTimer);
+    if (!isCorner()) return;
+    const gen = ++wordsGen, wasShown = qEl.classList.contains('show');
+    qEl.classList.remove('show');
+    setTimeout(() => {
+      if (gen !== wordsGen || !isCorner()) return;
+      showLine(pickLine());
+      void qEl.offsetWidth;
+      qEl.classList.add('show');
+      wordsTimer = setTimeout(() => nextWords(), W8.speed * 1000);
+    }, wasShown ? 2700 : (soon ? 400 : 50));
+  }
+
+  function setMode(mode, animate = true) {
+    W8.mode = mode; saveWords();
+    document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === mode));
+    $('#cornerBtn').classList.toggle('on', mode === 'corner');
+    const apply = () => {
+      document.body.classList.toggle('corner', mode === 'corner');
+      if (mode === 'corner') { qEl.classList.remove('show'); nextWords(true); }
+      else { clearTimeout(wordsTimer); wordsGen++; qEl.classList.remove('show'); }
+      requestAnimationFrame(() => document.body.classList.remove('morph'));
+    };
+    if (animate) { document.body.classList.add('morph'); setTimeout(apply, 460); } else apply();
+  }
+
+  /* ================= Timer ================= */
+  let state = 'idle';
+  let durationMs = store.get('minutes', 20) * 60000;
+  let remaining = durationMs, endAt = 0, tickTimer = null;
+  let soundOn = store.get('sound', true);
+  const C = 2 * Math.PI * 47;
+  const elTime = $('#time'), elStatus = $('#status'), elProg = $('#progress');
+  elProg.style.strokeDasharray = C.toFixed(2);
+  const PRESETS = [10, 15, 20, 25, 45, 60];
+
+  const fmt = ms => {
+    const s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    const pad = n => String(n).padStart(2, '0');
+    return h ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
+  };
+  const MESSAGES = ['Breathe. Focus.', 'One thing at a time', 'Slow is smooth', 'Stay with it', 'Gently, steadily'];
+  let msgIdx = 0;
+
+  function render() {
+    elTime.textContent = fmt(remaining);
+    const frac = durationMs ? remaining / durationMs : 0;
+    elProg.style.strokeDashoffset = (C * (1 - frac)).toFixed(2);
+    document.title = state === 'running' ? `${fmt(remaining)} · pause a little`
+      : state === 'paused' ? `❚❚ ${fmt(remaining)} · pause a little`
+      : state === 'done' ? '✦ Time’s up · pause a little' : 'pause a little';
+    document.body.classList.toggle('playing', state === 'running');
+    document.body.classList.toggle('done', state === 'done');
+    document.querySelectorAll('.chip[data-min]').forEach(ch => ch.classList.toggle('active', +ch.dataset.min * 60000 === durationMs));
+  }
+  const setStatus = t => { elStatus.textContent = t; };
+
+  function tick() {
+    if (state !== 'running') return;
+    remaining = endAt - Date.now();
+    if (remaining <= 0) return finish();
+    const m = Math.floor((durationMs - remaining) / 120000);
+    if (m !== msgIdx) { msgIdx = m; setStatus(MESSAGES[msgIdx % MESSAGES.length]); }
+    render();
+  }
+  function start() {
+    clearTimeout(previewTimer); previewTimer = null;
+    const fresh = state === 'idle' || state === 'done';
+    if (state === 'done') remaining = durationMs;
+    if (fresh) phaseShown = new Set();
+    state = 'running';
+    endAt = Date.now() + remaining;
+    msgIdx = Math.floor((durationMs - remaining) / 120000);
+    setStatus(MESSAGES[msgIdx % MESSAGES.length]);
+    if (soundOn) { audio.play(); toShell({ playing: 1 }); }
+    clearInterval(tickTimer); tickTimer = setInterval(tick, 250);
+    keepAwake(true); scheduleZen(); render();
+    if (fresh) nextWords(true);
+  }
+  function pause() {
+    remaining = Math.max(0, endAt - Date.now());
+    state = 'paused'; clearInterval(tickTimer); audio.stop();
+    setStatus('Paused'); keepAwake(false); wake(); render();
+  }
+  function reset() {
+    state = 'idle'; clearInterval(tickTimer); remaining = durationMs; audio.stop();
+    phaseShown = new Set();
+    setStatus('Ready when you are'); keepAwake(false); wake(); render();
+  }
+  function finish() {
+    state = 'done'; remaining = 0; clearInterval(tickTimer);
+    audio.stop(6); audio.chime();
+    try { navigator.vibrate && navigator.vibrate([180, 120, 180]); } catch (e) {}
+    const n = logSession(Math.round(durationMs / 60000));
+    setStatus(n > 1 ? `Session ${n} today · take a breath` : 'Time’s up · take a breath');
+    keepAwake(false); wake(); render(); renderStats();
+    nextWords(true);
+  }
+  const toggle = () => state === 'running' ? pause() : start();
+
+  function setMinutes(min) {
+    min = Math.min(180, Math.max(1, Math.round(min)));
+    durationMs = min * 60000; store.set('minutes', min);
+    $('#custom').value = PRESETS.includes(min) ? '' : min;
+    reset();
+  }
+
+  /* ================= Sound selection ================= */
+  let previewTimer = null;
+  function preview() {
+    if (state === 'running' || !soundOn) return;
+    audio.play();
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => { previewTimer = null; if (state !== 'running') audio.stop(2.5); }, 12000);
+  }
+  function endPreview() {
+    if (!previewTimer) return;
+    clearTimeout(previewTimer); previewTimer = null;
+    if (state !== 'running') audio.stop(1.5);
+  }
+  function selectMood(id, withPreview) {
+    const mood = moodById(id);
+    audio.setMood(mood);
+    $('#moodName').textContent = mood.name;
+    document.querySelectorAll('.mood').forEach(el => el.classList.toggle('active', el.dataset.id === mood.id));
+    store.set('mood', mood.id);
+    if (withPreview) preview();
+  }
+
+  /* ================= Sheet ================= */
+  function buildSheet() {
+    $('#swatches').innerHTML = PALETTES.map((p, i) => {
+      const c = p.colors;
+      const bg = `radial-gradient(circle at 30% 30%, ${c[0]}, transparent 62%),radial-gradient(circle at 72% 55%, ${c[2]}, transparent 60%),radial-gradient(circle at 40% 82%, ${c[3]}, transparent 60%),${p.bg}`;
+      return `<button class="sw" data-i="${i}" aria-label="${p.name} colors"><span class="orb" style="background:${bg}"></span>${p.name}</button>`;
+    }).join('');
+    $('#moods').innerHTML = MOODS.map(m => `<button class="mood" data-id="${m.id}"><b>${m.name}</b><span>${m.desc}</span></button>`).join('');
+    $('#swatches').addEventListener('click', e => { const b = e.target.closest('.sw'); if (b) applyPalette(+b.dataset.i); });
+    $('#moods').addEventListener('click', e => { const b = e.target.closest('.mood'); if (b) selectMood(b.dataset.id, true); });
+
+    $('#modeSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b && b.dataset.v !== W8.mode) setMode(b.dataset.v); });
+    const renderKinds = () => document.querySelectorAll('#kindRow .chip').forEach(b => b.classList.toggle('on', !!W8[b.dataset.k]));
+    $('#kindRow').addEventListener('click', e => {
+      const b = e.target.closest('.chip'); if (!b) return;
+      const k = b.dataset.k, other = k === 'calm' ? 'poems' : 'calm';
+      W8[k] = !W8[k];
+      if (!W8[k] && !W8[other] && !mineLines().length) W8[other] = true; // keep something to show
+      saveWords(); renderKinds(); recent = [];
+    });
+    renderKinds();
+    const renderSpeed = () => document.querySelectorAll('#speedRow .chip').forEach(b => b.classList.toggle('on', +b.dataset.s === W8.speed));
+    $('#speedRow').addEventListener('click', e => {
+      const b = e.target.closest('.chip'); if (!b) return;
+      W8.speed = +b.dataset.s; saveWords(); renderSpeed();
+    });
+    renderSpeed();
+    const nameIn = $('#nameInput'), mineIn = $('#mineInput');
+    nameIn.value = W8.name; mineIn.value = W8.mine;
+    nameIn.addEventListener('input', () => { W8.name = nameIn.value.slice(0, 24); saveWords(); });
+    mineIn.addEventListener('input', () => { W8.mine = mineIn.value.slice(0, 6000); saveWords(); });
+    document.querySelectorAll('.sheet .chip[data-min]').forEach(b => b.addEventListener('click', () => setMinutes(+b.dataset.min)));
+  }
+  const sheetOpen = () => document.body.classList.contains('sheet-open');
+  function openSheet() { renderStats(); document.body.classList.add('sheet-open'); document.body.classList.remove('zen'); clearTimeout(zenTimer); }
+  function closeSheet() { document.body.classList.remove('sheet-open'); endPreview(); scheduleZen(); }
+
+  /* ================= Wake lock & zen ================= */
+  let wakeLock = null;
+  async function keepAwake(on) {
+    if (inShell) return toShell({ wake: on ? 'timer' : 'timer-off' });
+    try {
+      if (on && 'wakeLock' in navigator) { if (!wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } }
+      else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+    } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && state === 'running') { keepAwake(true); tick(); }
+  });
+  let zenTimer = null;
+  function wake() { document.body.classList.remove('zen'); scheduleZen(); }
+  function scheduleZen() {
+    clearTimeout(zenTimer);
+    if (state === 'running' && !sheetOpen()) zenTimer = setTimeout(() => { if (state === 'running' && !sheetOpen()) document.body.classList.add('zen'); }, 4000);
+  }
+  ['pointermove', 'pointerdown', 'keydown', 'touchstart'].forEach(ev => addEventListener(ev, wake, { passive: true }));
+
+  /* ================= Wiring ================= */
+  $('#playBtn').addEventListener('click', toggle);
+  $('#resetBtn').addEventListener('click', reset);
+  $('#presets').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) setMinutes(+b.dataset.min); });
+  $('#custom').addEventListener('change', e => { const v = parseInt(e.target.value, 10); if (v > 0) setMinutes(v); });
+  $('#custom').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+
+  function setSound(on) {
+    soundOn = on; store.set('sound', on);
+    document.body.classList.toggle('muted', !on);
+    if (state === 'running') { if (on) { audio.play(); toShell({ playing: 1 }); } else audio.stop(); }
+    else if (!on) endPreview();
+  }
+  $('#soundBtn').addEventListener('click', () => setSound(!soundOn));
+
+  const vol = $('#vol'), volS = $('#volSheet');
+  vol.value = volS.value = store.get('volume', .6);
+  audio.vol = +vol.value;
+  [vol, volS].forEach(el => el.addEventListener('input', () => {
+    vol.value = volS.value = el.value;
+    audio.setVolume(+el.value); store.set('volume', +el.value);
+  }));
+
+  $('#paletteBtn').addEventListener('click', openSheet);
+  $('#moodBtn').addEventListener('click', openSheet);
+  $('#cardSettings').addEventListener('click', openSheet);
+  $('#cornerBtn').addEventListener('click', () => setMode(isCorner() ? 'timer' : 'corner'));
+  $('#sheetClose').addEventListener('click', closeSheet);
+  $('#backdrop').addEventListener('click', closeSheet);
+
+  function toggleFs() {
+    if (inShell) return toShell({ fs: 1 });
+    try {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+      else document.exitFullscreen && document.exitFullscreen();
+    } catch (e) {}
+  }
+  $('#fsBtn').addEventListener('click', toggleFs);
+  if (!document.documentElement.requestFullscreen && !inShell) $('#fsBtn').style.display = 'none';
+  $('#raagBtn').addEventListener('click', e => { if (inShell) { e.preventDefault(); toShell({ go: 'raag' }); } });
+  addEventListener('message', e => {
+    if (e.source !== parent || !e.data || !e.data.quiet) return;
+    endPreview();
+    if (state === 'running' && soundOn) audio.stop(1.5); // timer keeps counting, music yields
+  });
+
+  addEventListener('keydown', e => {
+    if (e.key === 'Escape' && sheetOpen()) { closeSheet(); return; }
+    if (e.target.matches('textarea, input:not([type=range])')) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === ' ' || k === 'spacebar') { e.preventDefault(); toggle(); }
+    else if (k === 'r') reset();
+    else if (k === 'c') setMode(isCorner() ? 'timer' : 'corner');
+    else if (k === 'm') setSound(!soundOn);
+    else if (k === 'p') applyPalette((palIdx + 1) % PALETTES.length);
+    else if (k === 'n') { const i = MOODS.indexOf(audio.mood); selectMood(MOODS[(i + 1) % MOODS.length].id, true); }
+    else if (k === 'f') toggleFs();
+  });
+
+  /* ================= Intention & stats ================= */
+  const intentEl = $('#intent'), intentShow = $('#intentShow');
+  function setIntent(v) {
+    v = v.slice(0, 60); store.set('intent', v);
+    intentShow.textContent = v.trim() ? 'Focusing on · ' + v.trim() : '';
+  }
+  intentEl.value = store.get('intent', '');
+  setIntent(intentEl.value);
+  intentEl.addEventListener('input', () => setIntent(intentEl.value));
+  intentEl.addEventListener('keydown', e => { if (e.key === 'Enter') { intentEl.blur(); if (state !== 'running') start(); } });
+
+  const dayKey = (d = new Date()) => d.toLocaleDateString('en-CA');
+  function logSession(min) {
+    const log = store.get('log', {}), k = dayKey();
+    log[k] = log[k] || { min: 0, n: 0 };
+    log[k].min += min; log[k].n += 1;
+    const keys = Object.keys(log).sort();
+    while (keys.length > 120) delete log[keys.shift()];
+    store.set('log', log);
+    return log[k].n;
+  }
+  function renderStats() {
+    const log = store.get('log', {}), today = log[dayKey()] || { min: 0, n: 0 };
+    let week = 0, streak = 0;
+    for (let i = 0; i < 7; i++) { const d = new Date(); d.setDate(d.getDate() - i); week += (log[dayKey(d)] || {}).min || 0; }
+    for (let i = today.n ? 0 : 1; i < 400; i++) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      if ((log[dayKey(d)] || {}).n) streak++; else break;
+    }
+    const hm = m => m >= 60 ? `${Math.floor(m / 60)}h ${m % 60 ? (m % 60) + 'm' : ''}`.trim() : `${m}m`;
+    $('#stats').innerHTML =
+      `<div class="stat"><b>${hm(today.min)}</b><span>Today</span></div>` +
+      `<div class="stat"><b>${hm(week)}</b><span>This week</span></div>` +
+      `<div class="stat"><b>${streak}</b><span>Day streak</span></div>`;
+  }
+  renderStats();
+
+  /* ================= Boot ================= */
+  buildSheet();
+  applyPalette(palIdx);
+  selectMood(store.get('mood', 'drift'), false);
+  document.body.classList.toggle('muted', !soundOn);
+  const savedMin = Math.round(durationMs / 60000);
+  if (![10, 15, 20, 25, 45].includes(savedMin)) $('#custom').value = savedMin;
+  render();
+  setMode(W8.mode, false);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
