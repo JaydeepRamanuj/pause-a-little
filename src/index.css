@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+/* Every colour is a runtime variable: the palette is set on :root by the app (see lib/usePalette.ts),
+   so the whole interface re-colours together. Defaults here are the Dawn palette. */
+@theme {
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-bg: var(--bg);
+  --color-glass: var(--glass);
+  --color-glass-strong: var(--glass-strong);
+  --color-glass-border: var(--glass-border);
+  --color-sheet: var(--sheet);
+  --color-track: var(--track);
+  --color-accent: var(--accent);
+
+  --font-display: Fraunces, "Noto Serif Devanagari", "Noto Serif Gujarati", Georgia, serif;
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --animate-breathe: breathe 8s ease-in-out infinite;
+  --animate-eq: eq 1.6s ease-in-out infinite;
+  --animate-track-pulse: track-pulse 4s ease-in-out infinite;
+
+  @keyframes breathe {
+    0%, 100% { transform: scale(0.75); opacity: 0.35; }
+    50% { transform: scale(1.15); opacity: 0.7; }
+  }
+  @keyframes eq {
+    0%, 100% { height: 25%; }
+    50% { height: 95%; }
+  }
+  @keyframes track-pulse {
+    0%, 100% { stroke: var(--track); }
+    50% { stroke: var(--ink-soft); }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+}
+
+:root {
+  --ink: rgba(59, 47, 63, 0.88);
+  --ink-soft: rgba(59, 47, 63, 0.58);
+  --glass: rgba(255, 255, 255, 0.3);
+  --glass-strong: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --sheet: rgba(255, 255, 255, 0.72);
+  --track: rgba(59, 47, 63, 0.1);
+  --bg: #f6e7e1;
+  --accent: rgba(59, 47, 63, 0.88);
+}
+
+@utility glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+}
+
+@layer base {
+  html,
+  body {
+    margin: 0;
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    overflow: hidden;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    transition: color 2.5s var(--ease-soft), background-color 2.5s var(--ease-soft);
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    font-family: var(--font-sans);
+  }
+
+  input,
+  textarea {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 0;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--ink-soft);
+    outline-offset: 3px;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 3px;
+    border-radius: 3px;
+    background: var(--track);
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--ink);
+    opacity: 0.75;
+    cursor: pointer;
+    border: none;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--ink);
+    opacity: 0.75;
+    cursor: pointer;
+    border: none;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+/* The mandala turns slowly in the raag palettes. Very long periods, as in the original. */
+.mandala-spin-a {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  animation: spin 1500s linear infinite;
+}
+
+.mandala-spin-b {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  animation: spin 2400s linear infinite reverse;
+}
+
+/* Hide the keyboard hints on touch screens. */
+@media (hover: none) {
+  .hint {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mandala-spin-a,
+  .mandala-spin-b,
+  .animate-breathe {
+    animation: none;
+  }
+}
+
+/* The grain: an SVG noise texture, blended over the colour. */
+.grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
