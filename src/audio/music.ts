@@ -8,7 +8,10 @@ import { getCtx, impulse } from './context';
 interface YTPlayer {
   setVolume(v: number): void;
   getVolume(): number;
-  loadVideoById(id: string): void;
+  isMuted(): boolean;
+  mute(): void;
+  unMute(): void;
+  loadVideoById(arg: { videoId: string; startSeconds?: number; suggestedQuality?: string }): void;
   playVideo(): void;
   pauseVideo(): void;
 }
@@ -34,6 +37,7 @@ let built = false;
 let comp: DynamicsCompressorNode, master: GainNode, analyser: AnalyserNode, bus: GainNode;
 let music: GainNode, el: HTMLAudioElement, rev: ConvolverNode, drone: GainNode, chime: GainNode, wave: PeriodicWave;
 let analyserBuf: Float32Array<ArrayBuffer>;
+let freqBuf: Uint8Array<ArrayBuffer>;
 
 function build() {
   if (built) return;
@@ -43,6 +47,7 @@ function build() {
   comp.connect(c.destination);
   master = c.createGain(); master.connect(comp);
   analyser = c.createAnalyser(); analyser.fftSize = 1024; analyserBuf = new Float32Array(1024);
+  freqBuf = new Uint8Array(analyser.frequencyBinCount);
   bus = c.createGain(); bus.connect(master); bus.connect(analyser);
 
   music = c.createGain(); music.gain.value = 0; music.connect(bus);
@@ -84,6 +89,36 @@ export function level(): number {
   return Math.min(1, Math.sqrt(s / (analyserBuf.length / 4)) * 3);
 }
 
+// beat detection: the bass (roughly 50–300 Hz) of the playing audio
+let avgBass = 0, lastBeat = 0, pulse = 0;
+
+/** The beat pulse for this frame: 0 to 1, jumping when the bass hits and fading between beats. */
+export interface Analysis {
+  beat: number;
+  live: boolean; // the analyser is reading sound, not silence or a page without audio
+}
+
+/**
+ * Reads the playing audio once a frame. Only audio that passes through the analyser can be
+ * read: files and your own uploads, not YouTube, which plays in its own frame.
+ */
+export function analyseFrame(dt: number, nowMs: number): Analysis {
+  pulse *= Math.exp(-dt * 7);
+  if (!built || getCtx().state !== 'running') return { beat: pulse, live: false };
+  analyser.getByteFrequencyData(freqBuf);
+  let sum = 0;
+  for (let i = 1; i <= 6; i++) sum += freqBuf[i];
+  const bass = sum / 6 / 255;
+  avgBass += (bass - avgBass) * 0.05;
+  if (bass > avgBass * 1.35 && bass > 0.18 && nowMs - lastBeat > 280) {
+    lastBeat = nowMs;
+    pulse = 1;
+  }
+  let total = 0;
+  for (let i = 0; i < freqBuf.length; i++) total += freqBuf[i];
+  return { beat: pulse, live: total > 0 };
+}
+
 export function ensureMusic() {
   build();
 }
@@ -115,6 +150,11 @@ export function filePause() {
   if (built) el.pause();
 }
 
+/** Jump the file to a given second. */
+export function fileSeek(seconds: number) {
+  if (built) el.currentTime = seconds;
+}
+
 export function fileProgress() {
   return { current: built ? el.currentTime : 0, duration: built ? el.duration : NaN };
 }
@@ -135,6 +175,14 @@ export function setYTHost(el: HTMLElement | null) {
   ytHost = el;
 }
 
+// Whether the YouTube player should be making sound right now. Browsers can start a
+// video muted; while this is true we keep taking the mute off.
+let ytWantSound = false;
+
+function ensureSound() {
+  if (yt && ytWantSound && yt.isMuted()) yt.unMute();
+}
+
 export function ytEnsure(): Promise<void> {
   if (ytPromise) return ytPromise;
   ytPromise = new Promise<void>((res, rej) => {
@@ -146,8 +194,16 @@ export function ytEnsure(): Promise<void> {
         height: '100%',
         playerVars: { playsinline: 1, rel: 0, modestbranding: 1, origin: location.origin, widget_referrer: location.href },
         events: {
-          onReady: () => res(),
-          onStateChange: (e: { data: number }) => { if (e.data === 0) hooks.ended?.(); },
+          onReady: () => {
+            // let the frame play sound on its own, as a page-level permission
+            ytHost?.querySelector('iframe')?.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
+            ensureSound();
+            res();
+          },
+          onStateChange: (e: { data: number }) => {
+            if (e.data === 0) hooks.ended?.();
+            if (e.data === 1) ensureSound(); // playing
+          },
           onError: () => hooks.error?.(),
         },
       });
@@ -160,17 +216,57 @@ export function ytEnsure(): Promise<void> {
   return ytPromise;
 }
 
+/** Load a video and start it, then make sure it is not muted, even if the browser muted it. */
 export function ytLoad(id: string) {
+  ytLoadAt(id, 0);
+}
+
+/** Load a video from a given second and start it. */
+export function ytLoadAt(id: string, start: number) {
   if (!yt) return;
+  ytWantSound = true;
   yt.setVolume(0);
-  yt.loadVideoById(id);
+  // the lowest quality on offer: the player treats this as a suggestion
+  yt.loadVideoById({ videoId: id, startSeconds: start, suggestedQuality: 'tiny' });
+  yt.playVideo();
+  ensureSound();
+  [300, 1000, 2500].forEach(ms => setTimeout(ensureSound, ms));
+}
+
+/** Whether the YouTube player is making sound right now. */
+export function ytSoundOn(): boolean {
+  return !!yt && ytWantSound && !yt.isMuted();
+}
+
+/** Switch the YouTube sound on or off from the button. Returns the new state. */
+export function ytToggleSound(volume: number): boolean {
+  if (!yt) return false;
+  const on = ytSoundOn();
+  ytSetMuted(on, volume); // on: mute it, off: unmute it
+  return !on;
+}
+
+/** Mute or unmute the YouTube player. Called from a button press, so browsers allow it. */
+export function ytSetMuted(muted: boolean, volume: number) {
+  if (!yt) return;
+  ytWantSound = !muted;
+  if (muted) {
+    yt.mute();
+  } else {
+    yt.unMute();
+    yt.setVolume(volume);
+  }
 }
 
 export function ytPlay() {
-  yt?.playVideo();
+  if (!yt) return;
+  ytWantSound = true;
+  ensureSound();
+  yt.playVideo();
 }
 
 export function ytPause() {
+  ytWantSound = false;
   yt?.pauseVideo();
 }
 

@@ -21,6 +21,7 @@
   --animate-breathe: breathe 8s ease-in-out infinite;
   --animate-eq: eq 1.6s ease-in-out infinite;
   --animate-track-pulse: track-pulse 4s ease-in-out infinite;
+  --animate-hint: hint-pulse 2.4s ease-in-out infinite;
 
   @keyframes breathe {
     0%, 100% { transform: scale(0.75); opacity: 0.35; }
@@ -33,6 +34,10 @@
   @keyframes track-pulse {
     0%, 100% { stroke: var(--track); }
     50% { stroke: var(--ink-soft); }
+  }
+  @keyframes hint-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 var(--ink-soft); }
+    50% { transform: scale(1.06); box-shadow: 0 0 0 6px transparent; }
   }
   @keyframes spin {
     to { transform: rotate(360deg); }
@@ -143,17 +148,58 @@
   }
 }
 
-/* The mandala turns slowly in the raag palettes. Very long periods, as in the original. */
-.mandala-spin-a {
+/* The mandala. Each ring turns slowly, in opposite directions. About 2.5 and 3 minutes a turn. */
+.m-spin-a {
   transform-box: view-box;
   transform-origin: 50% 50%;
-  animation: spin 1500s linear infinite;
+  animation: spin 150s linear infinite;
 }
 
-.mandala-spin-b {
+.m-spin-b {
   transform-box: view-box;
   transform-origin: 50% 50%;
-  animation: spin 2400s linear infinite reverse;
+  animation: spin 180s linear infinite reverse;
+}
+
+/* Petals breathe in and out, each a little out of step with the next. */
+.m-breathe {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: m-breathe 9s ease-in-out infinite;
+}
+
+/* Eyes on the peacock feathers brighten and fade. */
+.m-shimmer {
+  animation: m-shimmer 6s ease-in-out infinite;
+}
+
+/* A soft pulse for the centre and the dots. */
+.m-pulse {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: m-breathe 5s ease-in-out infinite;
+}
+
+/* Rangoli stars draw themselves, then rub out, over a long cycle. */
+.m-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: m-draw 16s ease-in-out infinite alternate;
+}
+
+@keyframes m-breathe {
+  0%, 100% { transform: scale(0.97); opacity: 0.7; }
+  50% { transform: scale(1.04); opacity: 1; }
+}
+
+@keyframes m-shimmer {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@keyframes m-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
 }
 
 /* Hide the keyboard hints on touch screens. */
@@ -164,9 +210,17 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mandala-spin-a,
-  .mandala-spin-b,
+  .m-spin-a,
+  .m-spin-b,
+  .m-breathe,
+  .m-shimmer,
+  .m-pulse,
   .animate-breathe {
+    animation: none;
+  }
+
+  .m-draw {
+    stroke-dashoffset: 0;
     animation: none;
   }
 }
@@ -174,4 +228,54 @@
 /* The grain: an SVG noise texture, blended over the colour. */
 .grain {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* The settings sheet: the palette's colours glow softly behind a readable panel. */
+.sheet-surface {
+  background:
+    radial-gradient(circle at 12% 8%, var(--tint-1), transparent 60%),
+    radial-gradient(circle at 92% 46%, var(--tint-2), transparent 58%),
+    radial-gradient(circle at 36% 100%, var(--tint-3), transparent 62%),
+    var(--sheet);
+}
+
+/* A thin scrollbar that follows the palette, for the Atmosphere sheet. */
+.themed-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-soft) transparent;
+}
+
+.themed-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.themed-scroll::-webkit-scrollbar-button {
+  display: none;
+}
+
+.themed-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.themed-scroll::-webkit-scrollbar-thumb {
+  background: var(--track);
+  border-radius: 999px;
+}
+
+.themed-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-soft);
+}
+
+/* Clean screen: the controls fade out until activity brings them back. */
+/* Controls come back slowly when you move, and fade out slowly after about 6 seconds still. */
+.ui {
+  transition-property: opacity;
+  transition-duration: 2.2s;
+  transition-timing-function: var(--ease-soft);
+}
+
+[data-ui-hidden] .ui {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition-duration: 3.2s !important;
 }

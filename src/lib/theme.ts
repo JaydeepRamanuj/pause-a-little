@@ -1,4 +1,5 @@
 import type { Palette } from '../data/palettes';
+import { hex } from './util';
 
 // The two rooms had slightly different glass and ink tones. Both are kept, as two tone sets:
 // focus palettes use the timer's tones, raag palettes use the raag room's.
@@ -35,6 +36,11 @@ export function applyPaletteVars(p: Palette) {
   r.setProperty('--glass-strong', tone.glassStrong);
   r.setProperty('--glass-border', tone.glassBorder);
   r.setProperty('--sheet', tone.sheet);
+  // three soft tints from the palette, painted behind the settings sheet
+  [p.colors[0], p.colors[2], p.colors[3]].forEach((c, i) => {
+    const [R, G, B] = hex(c);
+    r.setProperty(`--tint-${i + 1}`, `rgba(${R},${G},${B},${p.dark ? 0.3 : 0.4})`);
+  });
   r.setProperty('--bg', p.bg);
   r.setProperty('--accent', p.accent ?? `rgba(${p.ink},.88)`);
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', p.bg);

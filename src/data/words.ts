@@ -149,3 +149,38 @@ export const POEMS: Poem[] = [
   { text: 'કરતાં જાળ કરોળિયો, ભોંય પડી પછડાય;\nવણ તૂટેલે તાંતણે, ઉપર ચડવા જાય.', mean: 'Weaving its web, the spider falls to the ground again and again, yet climbs back up on its unbroken thread.', by: 'Gujarati verse' },
   { text: 'વૈષ્ણવ જન તો તેને કહીએ,\nજે પીડ પરાઈ જાણે રે.', mean: 'Call that person truly good who feels the pain of others.', by: 'Narsinh Mehta' },
 ];
+
+// ---------- languages ----------
+
+export type Lang = 'en' | 'sa' | 'hi' | 'gu';
+
+export const LANGS: { id: Lang; name: string }[] = [
+  { id: 'en', name: 'English' },
+  { id: 'sa', name: 'Sanskrit' },
+  { id: 'hi', name: 'Hindi' },
+  { id: 'gu', name: 'Gujarati' },
+];
+
+const POEM_LANG: Record<string, Lang> = {
+  'Hindi saying': 'hi',
+  'Gujarati saying': 'gu',
+  'Gujarati verse': 'gu',
+  'Narsinh Mehta': 'gu',
+  'Kabir': 'hi',
+  'Rahim': 'hi',
+  'Vrind': 'hi',
+  'Tulsidas': 'hi',
+  'Tulsidas · Ramcharitmanas': 'hi',
+  'Rabindranath Tagore': 'hi',
+  'Subhashita': 'sa',
+  'Hitopadesha': 'sa',
+  'Shanti mantra': 'sa',
+  'Mundaka Upanishad': 'sa',
+  'Brihadaranyaka Upanishad': 'sa',
+};
+
+/** The language a poem or saying is written in. */
+export function poemLang(p: Poem): Lang {
+  if (p.by.startsWith('Bhagavad Gita')) return 'sa';
+  return POEM_LANG[p.by] ?? 'hi';
+}

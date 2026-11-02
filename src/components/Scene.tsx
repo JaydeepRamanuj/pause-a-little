@@ -1,11 +1,14 @@
 import { useEffect, useRef } from 'react';
-import { level as musicLevel, strE } from '../audio/music';
+import { analyseFrame, level as musicLevel } from '../audio/music';
+import { CalmArt, type CalmVisualId } from './calmArt';
+import type { ShapeStyle } from '../lib/store';
 import type { Palette } from '../data/palettes';
 import { hex, rand, rgba } from '../lib/util';
 import type { RGB } from '../lib/util';
+import { mandalaSvg, type MandalaId } from './mandalas';
 
 // The living background: slow colour blobs, plus (for the raag palettes) a diya glow,
-// tanpura strings that move with the music, and stars and a shooting star at night.
+// and stars and a shooting star at night.
 
 interface Target {
   bg: RGB;
@@ -34,14 +37,43 @@ const cloneTarget = (t: Target): Target => ({
 interface Star { x: number; y: number; r: number; a: number; tw: number; ph: number }
 interface Shoot { x: number; y: number; vx: number; vy: number; life: number; dur: number }
 
-export function Scene({ palette }: { palette: Palette }) {
+export function Scene({ palette, mandala, mandalaOn, beatOn, shapesOn, shapeStyle, calmOn, calmVisual }: {
+  palette: Palette; mandala: MandalaId; mandalaOn: boolean; beatOn: boolean; shapesOn: boolean; shapeStyle: ShapeStyle;
+  calmOn: boolean; calmVisual: CalmVisualId;
+}) {
   const bgRef = useRef<HTMLCanvasElement>(null);
   const fxRef = useRef<HTMLCanvasElement>(null);
   const target = useRef<Target>(toTarget(palette));
+  const beatRef = useRef(beatOn);
+  const shapesRef = useRef(shapesOn);
+  const styleRef = useRef(shapeStyle);
+  const calmRef = useRef(calmOn);
+  const calmVisualRef = useRef(calmVisual);
+  const calmArt = useRef(new CalmArt());
 
   useEffect(() => {
     target.current = toTarget(palette);
   }, [palette]);
+
+  useEffect(() => {
+    beatRef.current = beatOn;
+  }, [beatOn]);
+
+  useEffect(() => {
+    shapesRef.current = shapesOn;
+  }, [shapesOn]);
+
+  useEffect(() => {
+    styleRef.current = shapeStyle;
+  }, [shapeStyle]);
+
+  useEffect(() => {
+    calmRef.current = calmOn;
+  }, [calmOn]);
+
+  useEffect(() => {
+    calmVisualRef.current = calmVisual;
+  }, [calmVisual]);
 
   useEffect(() => {
     const bg = bgRef.current!, fx = fxRef.current!;
@@ -90,17 +122,18 @@ export function Scene({ palette }: { palette: Palette }) {
       cur.fx += (t.fx - cur.fx) * k;
     };
 
-    const drawBg = () => {
+    const drawBg = (beat: number) => {
       g.fillStyle = rgba(cur.bg, 1);
       g.fillRect(0, 0, W, H);
       const M = Math.max(W, H), t = tB;
       for (const b of blobs) {
         const x = W * (0.5 + b.ax * Math.sin(t * b.sx + b.px) + 0.08 * Math.sin(t * b.sx * 2.3 + b.py));
         const y = H * (0.5 + b.ay * Math.cos(t * b.sy + b.py) + 0.08 * Math.cos(t * b.sy * 1.9 + b.px));
-        const r = M * (b.r + 0.08 * Math.sin(t * 0.9 + b.pr));
+        // on the beat the colours swell and brighten
+        const r = M * (b.r + 0.08 * Math.sin(t * 0.9 + b.pr)) * (1 + 0.22 * beat);
         const c = cur.colors[b.c];
         const gr = g.createRadialGradient(x, y, 0, x, y, r);
-        gr.addColorStop(0, rgba(c, 0.85)); gr.addColorStop(0.5, rgba(c, 0.35)); gr.addColorStop(1, rgba(c, 0));
+        gr.addColorStop(0, rgba(c, Math.min(1, 0.85 + 0.15 * beat))); gr.addColorStop(0.5, rgba(c, 0.35 + 0.2 * beat)); gr.addColorStop(1, rgba(c, 0));
         g.fillStyle = gr;
         g.fillRect(0, 0, W, H);
       }
@@ -148,21 +181,75 @@ export function Scene({ palette }: { palette: Palette }) {
       const dg = f.createRadialGradient(gx, gy, 0, gx, gy, gr);
       dg.addColorStop(0, rgba(A, ga)); dg.addColorStop(0.45, rgba(A, ga * 0.4)); dg.addColorStop(1, rgba(A, 0));
       f.fillStyle = dg; f.fillRect(0, 0, FW, FH);
-      // tanpura strings, moving with the sound
-      const y0 = FH * 0.2, y1 = FH * 0.8, cx = FW / 2, gap = 15 * dpr, offs = [-1.5, -0.5, 0.5, 1.5];
-      const base = cur.stars > 0.5 ? 0.07 : 0.1;
-      f.lineWidth = 0.9 * dpr;
-      for (let i = 0; i < 4; i++) {
-        strE[i] *= Math.exp(-dt * 0.7);
-        const amp = (0.35 + level * 9 + strE[i] * 3.2) * dpr;
-        f.strokeStyle = rgba(A, (base + strE[i] * 0.12 + level * 0.16) * cur.fx);
+    };
+
+    // Calm songs: abstract shapes that drift and swell with the beat
+    // four kinds of art, each a set of shapes drawn in its own way
+    type Kind = 'ring' | 'disc' | 'arc' | 'tri' | 'wave';
+    const KINDS_BY_STYLE: Record<ShapeStyle, Kind[]> = {
+      orbs: ['disc', 'ring'],
+      arcs: ['arc', 'ring'],
+      waves: ['wave'],
+      prisms: ['tri'],
+    };
+    const buildShapes = (style: ShapeStyle) => {
+      const kinds = KINDS_BY_STYLE[style];
+      return Array.from({ length: 9 }, (_, i) => ({
+        kind: kinds[i % kinds.length],
+        x: rand(0.12, 0.88), y: rand(0.12, 0.88), r: rand(0.05, 0.14),
+        sp: rand(0.05, 0.12), ph: rand(0, 6.28), c: i % 5, rot: rand(0, 6.28),
+      }));
+    };
+    let shapes = buildShapes(styleRef.current);
+    let builtStyle = styleRef.current;
+    let shapesAmt = 0;
+
+    const drawShapes = (t: number, beat: number, dt: number) => {
+      if (styleRef.current !== builtStyle) {
+        builtStyle = styleRef.current;
+        shapes = buildShapes(builtStyle);
+      }
+      const target = shapesRef.current ? 1 : 0;
+      shapesAmt += (target - shapesAmt) * (1 - Math.exp(-dt / 2));
+      if (shapesAmt < 0.02) return;
+      const a = shapesAmt;
+      f.lineWidth = 1.2 * dpr;
+      for (const sh of shapes) {
+        const x = FW * (sh.x + 0.03 * Math.sin(t * sh.sp + sh.ph));
+        const y = FH * (sh.y + 0.03 * Math.cos(t * sh.sp * 0.8 + sh.ph));
+        const R = Math.min(FW, FH) * sh.r * (1 + 0.25 * beat);
+        const col = cur.colors[sh.c];
+        f.strokeStyle = rgba(col, 0.8 * a);
+        f.fillStyle = rgba(col, 0.3 * a);
         f.beginPath();
-        for (let y = y0; y <= y1; y += 5 * dpr) {
-          const u = (y - y0) / (y1 - y0);
-          const x = cx + offs[i] * gap + amp * Math.sin(Math.PI * u) * Math.sin(t * (11 + i * 2.3) + u * (5 + i));
-          if (y === y0) f.moveTo(x, y); else f.lineTo(x, y);
+        if (sh.kind === 'ring') {
+          f.arc(x, y, R, 0, 6.283);
+          f.stroke();
+        } else if (sh.kind === 'disc') {
+          f.arc(x, y, R, 0, 6.283);
+          f.fill();
+        } else if (sh.kind === 'arc') {
+          const a0 = sh.rot + t * 0.2;
+          f.arc(x, y, R, a0, a0 + Math.PI);
+          f.stroke();
+        } else if (sh.kind === 'tri') {
+          const a0 = sh.rot + t * 0.15;
+          for (let k = 0; k < 3; k++) {
+            const ang = a0 + (k * 2 * Math.PI) / 3;
+            const px = x + R * Math.sin(ang), py = y - R * Math.cos(ang);
+            if (k === 0) f.moveTo(px, py); else f.lineTo(px, py);
+          }
+          f.closePath();
+          f.stroke();
+        } else {
+          for (let i = 0; i <= 40; i++) {
+            const u = i / 40;
+            const px = x - R * 2 + u * R * 4;
+            const py = y + Math.sin(u * 9.42 + t + sh.ph) * R * 0.3;
+            if (i === 0) f.moveTo(px, py); else f.lineTo(px, py);
+          }
+          f.stroke();
         }
-        f.stroke();
       }
     };
 
@@ -174,8 +261,16 @@ export function Scene({ palette }: { palette: Palette }) {
       tB += dt * (reduce ? (raag ? 0.012 : 0.03) : (raag ? 0.03 : 0.1));
       lerp(dt);
       level += (musicLevel() - level) * (1 - Math.exp(-dt * 3));
-      drawBg();
+      // the music is read once a frame, for the background and the Calm songs visuals
+      const analysis = beatRef.current || calmRef.current ? analyseFrame(dt, now) : null;
+      const beat = analysis?.beat ?? 0;
+      drawBg(beat);
       drawFx(dt);
+      drawShapes(clock, beat, dt);
+      calmArt.current.draw(
+        f, FW, FH, dpr, clock, dt, calmRef.current, cur.colors,
+        calmVisualRef.current, analysis, beatRef.current,
+      );
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
@@ -190,49 +285,25 @@ export function Scene({ palette }: { palette: Palette }) {
     <>
       <canvas ref={bgRef} aria-hidden="true" className="fixed inset-0 z-0 block h-full w-full" />
       <div aria-hidden="true" className="grain pointer-events-none fixed -inset-1/2 z-[1] opacity-[.09] mix-blend-overlay" />
-      <Mandala raag={palette.raag ?? false} dark={palette.dark} />
+      <Mandala on={mandalaOn} dark={palette.dark} id={mandala} />
       <canvas ref={fxRef} aria-hidden="true" className="pointer-events-none fixed inset-0 z-[2] block h-full w-full" />
     </>
   );
 }
 
-// ---------- the mandala (raag palettes only) ----------
+// ---------- the mandala (over any colour, when switched on) ----------
 
-const ring = (r: number, n: number, len: number, w: number, off = 0) => {
-  let s = `<circle cx="500" cy="500" r="${r - len / 2 - 6}"/>`;
-  for (let i = 0; i < n; i++) {
-    s += `<ellipse cx="500" cy="${500 - r}" rx="${w}" ry="${len / 2}" transform="rotate(${(360 / n) * i + off} 500 500)"/>`;
-  }
-  return s;
-};
-
-const dots = (r: number, n: number) => {
-  let s = '';
-  for (let i = 0; i < n; i++) {
-    const a = (Math.PI * 2 * i) / n;
-    s += `<circle cx="${500 + r * Math.sin(a)}" cy="${500 - r * Math.cos(a)}" r="2.2" fill="currentColor" stroke="none"/>`;
-  }
-  return s;
-};
-
-// Built once from constants only, so injecting it as markup is safe.
-const MANDALA_SVG = (() => {
-  const inner = ring(70, 8, 46, 13) + ring(130, 12, 60, 17, 15) + dots(178, 24) + ring(225, 16, 74, 21);
-  const outer = dots(282, 36) + ring(330, 24, 84, 20, 7.5) + ring(420, 32, 88, 17) + '<circle cx="500" cy="500" r="476"/>' + dots(492, 72);
-  return `<svg viewBox="0 0 1000 1000" fill="none" stroke="currentColor" stroke-width="1.1" class="h-full w-full overflow-visible"><g class="mandala-spin-a">${inner}</g><g class="mandala-spin-b">${outer}</g></svg>`;
-})();
-
-function Mandala({ raag, dark }: { raag: boolean; dark: boolean }) {
+function Mandala({ on, dark, id }: { on: boolean; dark: boolean; id: MandalaId }) {
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none fixed left-1/2 top-[46%] z-[1] aspect-square w-[min(96vmin,820px)] -translate-x-1/2 -translate-y-1/2"
       style={{
         color: 'var(--accent)',
-        opacity: raag ? (dark ? 0.11 : 0.16) : 0,
+        opacity: on ? (dark ? 0.12 : 0.14) : 0,
         transition: 'color 6s var(--ease-soft), opacity 6s var(--ease-soft)',
       }}
-      dangerouslySetInnerHTML={{ __html: MANDALA_SVG }}
+      dangerouslySetInnerHTML={{ __html: mandalaSvg(id) }}
     />
   );
 }

@@ -2,11 +2,12 @@ import { motion } from 'motion/react';
 import { useStore } from '../lib/store';
 import { cn } from '../lib/cn';
 
-/** The motivation corner: calm lines, poems and sayings, one at a time. */
+/** Motivation: calm lines, poems and sayings, one at a time. */
 export function Words() {
   const line = useStore(s => s.line);
   const shown = useStore(s => s.lineShown);
-  const corner = useStore(s => s.words.mode === 'corner');
+  const motivation = useStore(s => s.view === 'motivation');
+  const songs = useStore(s => s.source === 'songs'); // Calm songs has no words
   // Devanagari and Gujarati lines are set larger, as poems
   const poem = !!line && (line.poem || /[ऀ-૿]/.test(line.text));
 
@@ -15,7 +16,7 @@ export function Words() {
       aria-live="polite"
       className={cn(
         'pointer-events-none fixed inset-0 z-[3] place-items-center px-[26px] pb-[190px] pt-[max(90px,calc(env(safe-area-inset-top)_+_80px))] text-center min-[760px]:px-14 min-[760px]:pb-[120px] min-[760px]:pt-[110px]',
-        corner ? 'grid' : 'hidden',
+        motivation && !songs ? 'grid' : 'hidden',
       )}
     >
       <motion.blockquote

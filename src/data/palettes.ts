@@ -59,10 +59,12 @@ export const PRAHAR: Record<Prahar, { hi: string; en: string; ragas: string }> =
 /** The id that stands for "follow the raag clock" in the palette list. */
 export const RAAG_CLOCK_ID = 'raag';
 
-export const ALL_PALETTE_IDS = [...FOCUS_PALETTES.map(p => p.id), RAAG_CLOCK_ID];
+
 
 /** Resolve a palette id (plus raag clock mode) to the actual palette to show. */
 export function resolvePalette(id: string, mode: RaagClockMode, prahar: Prahar): Palette {
+  const calm = SONG_PALETTES.find(p => p.id === id);
+  if (calm) return calm;
   if (id === RAAG_CLOCK_ID) {
     const key = mode === 'light'
       ? (prahar === 'day' ? 'din' : 'prabhat')
@@ -73,3 +75,18 @@ export function resolvePalette(id: string, mode: RaagClockMode, prahar: Prahar):
   }
   return FOCUS_PALETTES.find(p => p.id === id) ?? FOCUS_PALETTES[0];
 }
+
+// Calm songs have their own colours, separate from the focus and raag ones.
+export const SONG_PALETTES: Palette[] = [
+  { id: 'moonlit', name: 'Moonlit', bg: '#14163a', ink: '232,234,255', dark: true, colors: ['#2a3a7a', '#4b3c8f', '#1f5f7a', '#6a4f9c', '#2c4f6e'] },
+  { id: 'golden', name: 'Golden hour', bg: '#f7e6c8', ink: '70,48,30', dark: false, colors: ['#f6c77a', '#f0a868', '#e9b5a0', '#fbe2b0', '#d98f6b'] },
+  { id: 'sea-glass', name: 'Sea glass', bg: '#d9ece9', ink: '26,58,60', dark: false, colors: ['#9fd8d0', '#bfe6dc', '#8fc6d8', '#e5f5f0', '#7fb8c9'] },
+  { id: 'rose-dusk', name: 'Rose dusk', bg: '#2a1a24', ink: '248,232,238', dark: true, colors: ['#7a3350', '#a24f6e', '#5c3a7a', '#c77b8f', '#8a4a6a'] },
+  { id: 'monsoon', name: 'Monsoon', bg: '#1a2430', ink: '226,236,242', dark: true, colors: ['#2e4a5e', '#3c6e7a', '#4b5f8a', '#2b5c58', '#5a7c92'] },
+  { id: 'linen', name: 'Linen', bg: '#f5efe6', ink: '60,52,44', dark: false, colors: ['#e8d6bd', '#d9c3a8', '#f0e4d0', '#cdb89a', '#e3cfb2'] },
+];
+
+
+
+/** Every colour, for any mode: the focus ones, the calm ones, and the raag clock. */
+export const ALL_PALETTE_IDS = [...FOCUS_PALETTES, ...SONG_PALETTES].map(p => p.id).concat(RAAG_CLOCK_ID);

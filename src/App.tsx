@@ -3,12 +3,15 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Scene } from './components/Scene';
 import { TopBar } from './components/TopBar';
 import { Focus } from './components/Focus';
-import { Dock } from './components/Dock';
 import { Words } from './components/Words';
 import { YouTubeCard } from './components/YouTubeCard';
-import { Sheet } from './components/Sheet';
+import { SettingsPanel } from './components/SettingsPanel';
+import { Pickers } from './components/Pickers';
+import { AudioPane } from './components/AudioPane';
+import { NowPlaying } from './components/NowPlaying';
+import { CleanClock } from './components/CleanClock';
 import {
-  boot, cyclePalette, setPrahar, setSheet, setSoundOn, setWordsMode, reset, step, toggleDrone, toggleSession, wake,
+  boot, cyclePalette, setClean, setPrahar, setSheet, setSongsPanel, setSoundOn, setView, reset, step, toggleDrone, toggleSession, wake,
 } from './app/session';
 import { applyPaletteVars } from './lib/theme';
 import { getState, useStore } from './lib/store';
@@ -19,18 +22,42 @@ import { fmt } from './lib/util';
 
 const WAKE_EVENTS = ['pointermove', 'pointerdown', 'keydown', 'touchstart'] as const;
 
+// Only real use brings the controls back. Alt+Tab, a bare modifier key, or the pointer
+// being reported in the same place (as happens when the window regains focus) does not.
+const MODIFIERS = ['Alt', 'Shift', 'Control', 'Meta'];
+let lastPointer = { x: -99, y: -99 };
+
+function onActivity(e: Event) {
+  if (e instanceof KeyboardEvent && (MODIFIERS.includes(e.key) || e.altKey || e.ctrlKey || e.metaKey)) return;
+  if (e instanceof PointerEvent && e.type === 'pointermove') {
+    const moved = Math.abs(e.clientX - lastPointer.x) + Math.abs(e.clientY - lastPointer.y);
+    lastPointer = { x: e.clientX, y: e.clientY };
+    if (moved < 4) return;
+  }
+  wake();
+}
+
 export default function App() {
   const paletteId = useStore(s => s.palette);
   const raagMode = useStore(s => s.raagMode);
   const prahar = useStore(s => s.prahar);
+  const mandala = useStore(s => s.mandala);
   const zen = useStore(s => s.zen);
   const timer = useStore(s => s.timer);
   const remaining = useStore(s => s.remaining);
   const minutes = useStore(s => s.minutes);
   const intent = useStore(s => s.intent);
-  const corner = useStore(s => s.words.mode === 'corner');
+  const view = useStore(s => s.view);
   const sheet = useStore(s => s.sheet);
+  const clean = useStore(s => s.clean);
+  const revealed = useStore(s => s.revealed);
+  const songsOpen = useStore(s => s.songsOpen);
+  const shapeStyle = useStore(s => s.shapeStyle);
+  const songVisual = useStore(s => s.songVisual);
+  const beatOn = useStore(s => s.source === 'songs' && s.timer === 'running');
+  const hidden = clean && !revealed && !sheet && !songsOpen;
 
+  const source = useStore(s => s.source);
   const palette = resolvePalette(paletteId, raagMode, prahar);
 
   // before paint, so the first frame already has the right colours
@@ -53,6 +80,7 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const s = getState();
+      if (e.key === 'Escape' && s.songsOpen) return setSongsPanel(false);
       if (e.key === 'Escape' && s.sheet) return setSheet(false);
       const target = e.target;
       if (target instanceof Element && target.matches('textarea, input:not([type=range])')) return;
@@ -60,47 +88,63 @@ export default function App() {
       const k = e.key.toLowerCase();
       if (k === ' ' || k === 'spacebar') { e.preventDefault(); toggleSession(); }
       else if (k === 'r') reset();
-      else if (k === 'c') setWordsMode(s.words.mode === 'corner' ? 'timer' : 'corner');
+      else if (k === 'c') setView(s.view === 'focus' ? 'motivation' : s.view === 'motivation' ? 'off' : 'focus');
       else if (k === 'm') setSoundOn(!s.soundOn);
       else if (k === 'p') cyclePalette();
       else if (k === 'n') step(1);
       else if (k === 'd') toggleDrone();
       else if (k === 'l') setSheet(!s.sheet);
       else if (k === 'f') toggleFullscreen();
+      else if (k === 'h') setClean(!s.clean);
     };
     addEventListener('keydown', onKey);
-    WAKE_EVENTS.forEach(ev => addEventListener(ev, wake, { passive: true }));
+    WAKE_EVENTS.forEach(ev => addEventListener(ev, onActivity, { passive: true }));
     return () => {
       removeEventListener('keydown', onKey);
-      WAKE_EVENTS.forEach(ev => removeEventListener(ev, wake));
+      WAKE_EVENTS.forEach(ev => removeEventListener(ev, onActivity));
     };
   }, []);
 
   return (
-    <div className={cn('relative h-dvh overflow-hidden', zen && 'cursor-none')}>
-      <Scene palette={palette} />
+    <div
+      data-ui-hidden={hidden ? '' : undefined}
+      className={cn('relative h-dvh overflow-hidden', (zen || hidden) && 'cursor-none')}
+    >
+      <Scene
+        palette={palette}
+        mandala={mandala === 'none' ? 'lotus' : mandala}
+        mandalaOn={mandala !== 'none' && source === 'raag'}
+        beatOn={beatOn}
+        shapesOn={source === 'ambient'}
+        shapeStyle={shapeStyle}
+        calmOn={source === 'songs'}
+        calmVisual={songVisual}
+      />
       <TopBar palette={palette} />
 
-      <p className="pointer-events-none fixed inset-x-0 top-[max(86px,calc(env(safe-area-inset-top)_+_76px))] z-[3] px-6 text-center text-[11.5px] uppercase tracking-[.2em] text-ink-soft">
-        {corner && intent.trim() ? `Focusing on · ${intent.trim()}` : ''}
+      <p className="ui pointer-events-none fixed inset-x-0 top-[max(86px,calc(env(safe-area-inset-top)_+_76px))] z-[3] px-6 text-center text-[11.5px] uppercase tracking-[.2em] text-ink-soft">
+        {view === 'motivation' && source !== 'songs' && intent.trim() ? `Focusing on · ${intent.trim()}` : ''}
       </p>
 
       <Focus palette={palette} />
       <Words />
-      <Dock />
+      <NowPlaying />
       <YouTubeCard />
+      <CleanClock />
 
       <footer
         className={cn(
-          'hint pointer-events-none fixed inset-x-0 top-[66px] z-[3] text-center text-[11.5px] tracking-[.06em] text-ink-soft transition-opacity duration-[1.4s]',
-          (corner || sheet) && 'hidden',
+          'hint ui pointer-events-none fixed inset-x-0 top-[66px] z-[3] text-center text-[11.5px] tracking-[.06em] text-ink-soft transition-opacity duration-[1.4s]',
+          (view !== 'focus' || sheet) && 'hidden',
           zen && 'opacity-0',
         )}
       >
-        <Kbd>Space</Kbd> start · <Kbd>R</Kbd> reset · <Kbd>C</Kbd> corner · <Kbd>M</Kbd> sound · <Kbd>P</Kbd> colors · <Kbd>N</Kbd> next · <Kbd>D</Kbd> tanpura · <Kbd>F</Kbd> fullscreen
+        <Kbd>Space</Kbd> start · <Kbd>R</Kbd> reset · <Kbd>C</Kbd> focus · <Kbd>M</Kbd> sound · <Kbd>P</Kbd> colors · <Kbd>N</Kbd> next · <Kbd>D</Kbd> tanpura · <Kbd>F</Kbd> fullscreen · <Kbd>H</Kbd> clean
       </footer>
 
-      <Sheet />
+      <SettingsPanel />
+      <Pickers />
+      <AudioPane />
       <Toast />
     </div>
   );
