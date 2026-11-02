@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
+import { canInstall, install, subscribeInstall } from '../lib/pwa';
 import { LANGS } from '../data/words';
 import {
   hm, setClean, setCleanClock, setDroneKeyIndex, setDroneVolume, setSheet,
@@ -57,6 +59,7 @@ export function SettingsPanel() {
 
           <p className="mt-4 text-[11px] uppercase tracking-[.2em] text-ink-soft">For every mode</p>
           <ScreenSection />
+          <AppSection />
           <WordsSection />
           <FocusSection />
 
@@ -68,6 +71,24 @@ export function SettingsPanel() {
           {source === 'ambient' && <AmbientSettings />}
         </div>
       </motion.section>
+    </>
+  );
+}
+
+/** Install to the home screen, when the browser offers it. */
+function AppSection() {
+  const [can, setCan] = useState(canInstall());
+  useEffect(() => subscribeInstall(() => setCan(canInstall())), []);
+  if (!can) return null;
+  return (
+    <>
+      <Heading>App</Heading>
+      <button type="button" onClick={install} className="glass h-10 rounded-full px-4 text-[13px] hover:bg-glass-strong">
+        Install pause a little
+      </button>
+      <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+        Installed, it opens in its own window and keeps working offline. Songs and YouTube still need a connection.
+      </p>
     </>
   );
 }
