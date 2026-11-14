@@ -88,6 +88,12 @@ Focus (25 min by default, set with the chips on the timer), then a short break (
 - **Saved setups** (Settings → Saved setups): keep the focus length, cycle settings, sound type, mood or raag track, colours, mandala and words under a name ("Deep work", "Evening riyaz"). *Use* applies it and resets the timer; it does not start. Same name replaces. Stored in `drift:setups` and included in the export.
 - **Clock only** (T, or the clock button / Settings): a full-screen time of day over the scene, with the session time beneath while one runs.
 
+## Sound extras
+
+- **Sound layers** (Settings → Sound layers): rain, ocean, bells, pads and tanpura, each with its own volume (zero = off). They play under whatever source is chosen, a little softer on breaks. Moving a slider while idle plays a short taste. Saved as `drift:layers` and included in the export.
+- **Sleep timer** (Settings → Sleep timer): 15, 30 or 60 minutes. It starts your sound (no focus session needed) and fades it out over the last 90 seconds; tap the chip again to cancel. Not remembered after a reload.
+- **Raag details:** a raag track whose title names a known raag (Bhairavi, Bhairav, Yaman, Todi, Malkauns and more, in `src/data/raags.ts`) shows its thaat, hour and mood in the playlist, on the now-playing card and in Settings → About this raag.
+
 ## The mandala
 
 In Raag mode a mandala turns behind the clock. Outer rings turn slowly, inner ones faster, in alternating directions, with a soft glow at the centre. Settings → Screen → *Mandala spin* (Still / Slow / Flowing / Lively) sets the speed. It eases almost still when you pause, glows a little brighter in the last three minutes, blooms once when a session finishes, and swells gently with the music's beat. It respects reduced-motion settings.

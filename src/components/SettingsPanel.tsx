@@ -154,10 +154,10 @@ function LayerSection() {
 
 function SleepSection() {
   const end = useStore(s => s.sleepEnd);
-  const [now, setNow] = useState(() => Date.now());
+  const [, tick] = useState(0); // re-render every second while the timer runs
   useEffect(() => {
     if (!end) return;
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    const id = window.setInterval(() => tick(n => n + 1), 1000);
     return () => clearInterval(id);
   }, [end]);
   return (
@@ -167,7 +167,7 @@ function SleepSection() {
         {SLEEP_MINUTES.map(m => (
           <Chip key={m} active={false} onClick={() => startSleep(m)}>{m} min</Chip>
         ))}
-        {end && <Chip active onClick={cancelSleep}>{sleepLeft(end, now)} · Cancel</Chip>}
+        {end && <Chip active onClick={cancelSleep}>{sleepLeft(end, Date.now())} · Cancel</Chip>}
       </div>
       <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
         Plays your sound and fades it out slowly at the end. It works without a focus session.

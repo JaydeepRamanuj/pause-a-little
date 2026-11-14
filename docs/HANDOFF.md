@@ -2,6 +2,33 @@
 
 The latest handoff is at the top. Each phase session adds its own section above the previous one.
 
+## All phases complete
+
+All six phases of `docs/PLAN.md` are built (mandalas, groundwork and stats, cycles and breathing, history and data, app feel, sound extras). Remaining ideas are listed under the known issues of each handoff.
+
+---
+
+## Handoff 6 → done
+
+**Built (Phase 6, sound extras):**
+
+- `src/audio/layers.ts` (new): the layer engine on the shared AudioContext. Rain, ocean and pads are built once and only their gain moves; bells and tanpura are scheduled note by note while their level is above zero. Own master + compressor + small reverb.
+- `src/app/layersMath.ts` (new, pure): layer ids/names, `normalizeLayers`, `anyLayer`, sleep options, `sleepFadeSec`, `sleepLeft`.
+- `src/app/sleep.ts` (new): `startSleep(min)` (starts the sound if no session is running, schedules `soundStop(fade)` and the end), `cancelSleep()`. Re-exported from `session.ts`.
+- `src/app/sound.ts`: `soundStart` / `soundStop` also start/stop the layers (0.7 × on breaks); `idleSoon` checks `layers.playing`; mood previews no longer cut a sleep-timer sound; `setLayer(id, v)`.
+- `src/data/raags.ts` (new): `raagInfoFor(title)` (longest key first) and `raagLine`. Shown in `AudioPane.tsx` (playlist rows), `NowPlaying.tsx` and `SettingsPanel.tsx` (About this raag).
+- `store.ts`: `layers` (`drift:layers`), `sleepEnd` (not persisted). `SettingsPanel.tsx`: `LayerSection`, `SleepSection`. README: "Sound extras". 5 new tests in `__tests__/phase6.test.ts` (45 total).
+
+**Decisions:** layers are a separate engine, not part of the ambient moods, so they work with every source. The sleep fade is the last 90 s (less for very short timers) instead of a fade across the whole period, so the sound stays at the chosen volume until then. Sleep timer state is not saved. The prahar of a raag reuses the existing `Prahar` type; raag details are matched by words in the track title rather than a new field in `tracks.ts`.
+
+**Verified:** `npm run build`, `npm test` (45). Playwright at 1280×800 and 390×844: Settings shows the five sliders and the sleep chips, a slider click and the 30 min chip work, the countdown chip shows; no page errors. Actual audio output was not listened to (headless).
+
+**Known issues / not done:** the layer sounds were not auditioned by ear, so levels may need tuning. The sleep timer does not show on the main screen, only in Settings. Sleep fade does not touch a YouTube track's volume beyond what `soundStop` already does. Layers are not part of saved setups. The tanpura layer is a simple fixed-pitch loop, not tied to the Raag tanpura key.
+
+**Next:** none, all phases done.
+
+---
+
 ## Handoff 5 → Phase 6
 
 **Built (Phase 5, feeling like a real app):**
