@@ -2,6 +2,8 @@
 // the volumes. The timer calls soundStart() and soundStop(); everything else is called from the UI.
 
 import { ambient } from "../audio/ambient";
+import { layers } from "../audio/layers";
+import { anyLayer, type LayerId } from "./layersMath";
 import { suspendCtx } from "../audio/context";
 import {
   droneSetVolume,
@@ -162,6 +164,7 @@ function idleSoon(ms: number) {
       g !== gen ||
       musicOn ||
       ambient.playing ||
+      layers.playing ||
       getState().timer === "running"
     )
       return;
@@ -401,6 +404,7 @@ export function soundStart() {
   const s = getState();
   if (!s.soundOn) return;
   gen++;
+  layers.play(s.layers, s.block === "focus" ? 1 : 0.7);
   if (s.block !== "focus") return breakSoundStart(s);
   if (s.source === "ambient") {
     ambient.play(s.ambientVol, s.mood);
@@ -432,6 +436,7 @@ function breakSoundStart(s: State) {
 export function soundStop(fade = 0.8) {
   musicOn = false;
   ambient.stop(fade);
+  layers.stop(fade);
   if (cur) musicPause(fade);
   droneStop(fade + 0.5);
   idleSoon(fade * 1000 + 400);
@@ -495,12 +500,12 @@ export function setMood(id: string, withPreview: boolean) {
 /** A short taste of a mood while the timer is idle. */
 function preview() {
   const s = getState();
-  if (s.timer === "running" || !s.soundOn || s.source !== "ambient") return;
+  if (s.timer === "running" || s.sleepEnd || !s.soundOn || s.source !== "ambient") return;
   ambient.play(s.ambientVol, s.mood);
   clearTimeout(previewTimer);
   previewTimer = window.setTimeout(() => {
     previewTimer = 0;
-    if (getState().timer !== "running") ambient.stop(2.5);
+    if (getState().timer !== "running" && !getState().sleepEnd) ambient.stop(2.5);
   }, 12000);
 }
 
@@ -508,7 +513,7 @@ export function endPreview() {
   if (!previewTimer) return;
   clearTimeout(previewTimer);
   previewTimer = 0;
-  if (getState().timer !== "running") ambient.stop(1.5);
+  if (getState().timer !== "running" && !getState().sleepEnd) ambient.stop(1.5);
 }
 
 /** The card's volume slider: changes the volume of whichever source is active. */
@@ -690,3 +695,33 @@ export function addFiles(list: FileList, group: "raag" | "songs" = "raag") {
     );
 }
 
+
+// ---------- layer mixer ----------
+
+let layerTimer = 0;
+
+/** Set one layer's volume (0 = off). While nothing plays, a short taste lets you hear it. */
+export function setLayer(id: LayerId, v: number) {
+  const next = { ...getState().layers, [id]: Math.max(0, Math.min(1, v)) };
+  persist("layers", next);
+  setState({ layers: next });
+  const s = getState();
+  if (!s.soundOn) return;
+  const live = s.timer === "running" || !!s.sleepEnd;
+  if (live) {
+    const scale = s.block === "focus" ? 1 : 0.7;
+    if (layers.playing) layers.set(next, scale);
+    else layers.play(next, scale);
+    return;
+  }
+  // idle: taste it for a few seconds, then fade
+  if (!anyLayer(next)) { layers.stop(1); return; }
+  gen++;
+  layers.play(next);
+  clearTimeout(layerTimer);
+  layerTimer = window.setTimeout(() => {
+    layerTimer = 0;
+    const g = getState();
+    if (g.timer !== "running" && !g.sleepEnd) { layers.stop(2); idleSoon(2600); }
+  }, 8000);
+}

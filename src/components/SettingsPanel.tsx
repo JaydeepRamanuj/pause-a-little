@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { canInstall, install, subscribeInstall } from '../lib/pwa';
 import { LANGS } from '../data/words';
 import {
-  applySetup, deleteSetup, hm, notifyPermission, saveSetup, setClock, setCycle, setNotify, setGoal, setHistory, setClean, setCleanClock, setDroneKeyIndex, setMandalaSpin, setDroneVolume, setSheet,
+  allTracks, applySetup, cancelSleep, deleteSetup, setLayer, startSleep, hm, notifyPermission, saveSetup, setClock, setCycle, setNotify, setGoal, setHistory, setClean, setCleanClock, setDroneKeyIndex, setMandalaSpin, setDroneVolume, setSheet,
   setShapeStyle, setSongVisual, setWords, toggleDrone, toggleLang,
 } from '../app/session';
 import { MANDALA_SPINS, useStore } from '../lib/store';
@@ -11,6 +11,8 @@ import type { ShapeStyle } from '../lib/store';
 import { cn } from '../lib/cn';
 import { Chip } from './Focus';
 import { BREATHS } from '../app/breathMath';
+import { LAYER_IDS, LAYER_NAMES, SLEEP_MINUTES, sleepLeft } from '../app/layersMath';
+import { raagInfoFor } from '../data/raags';
 import { Heading, Slider, fieldClass } from './controls';
 import { CALM_VISUALS } from './calmArt';
 import { CloseIcon } from './icons';
@@ -65,6 +67,8 @@ export function SettingsPanel() {
           <WordsSection />
           <FocusSection />
           <CycleSection />
+          <LayerSection />
+          <SleepSection />
           <SetupSection />
           <NotifySection />
           <DataSection />
@@ -129,6 +133,49 @@ function ScreenSection() {
   );
 }
 
+// ---------- layer mixer and sleep timer ----------
+
+function LayerSection() {
+  const levels = useStore(s => s.layers);
+  return (
+    <>
+      <Heading>Sound layers</Heading>
+      <p className="mx-0.5 mb-2 text-[11.5px] leading-relaxed text-ink-soft">
+        Mix a little rain, ocean, bells, pads or tanpura under whatever plays. Each has its own volume; leave it at zero to switch it off.
+      </p>
+      <div className="flex flex-col gap-1">
+        {LAYER_IDS.map(id => (
+          <Slider key={id} label={LAYER_NAMES[id]} value={levels[id]} onChange={v => setLayer(id, v)} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function SleepSection() {
+  const end = useStore(s => s.sleepEnd);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!end) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [end]);
+  return (
+    <>
+      <Heading>Sleep timer</Heading>
+      <div className="flex flex-wrap items-center gap-2">
+        {SLEEP_MINUTES.map(m => (
+          <Chip key={m} active={false} onClick={() => startSleep(m)}>{m} min</Chip>
+        ))}
+        {end && <Chip active onClick={cancelSleep}>{sleepLeft(end, now)} · Cancel</Chip>}
+      </div>
+      <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+        Plays your sound and fades it out slowly at the end. It works without a focus session.
+      </p>
+    </>
+  );
+}
+
 // ---------- Raag ----------
 
 /** Raag: the tanpura, which plays only in Raag. The mandala has its own card. */
@@ -136,8 +183,23 @@ function RaagSettings() {
   const drone = useStore(s => s.drone);
   const droneKey = useStore(s => s.droneKey);
   const droneVol = useStore(s => s.droneVol);
+  const track = useStore(s => allTracks(s).find(t => t.key === s.musicKey) ?? null);
+  const info = track ? raagInfoFor(track.title) : null;
   return (
     <>
+      {info && (
+        <>
+          <Heading>About this raag</Heading>
+          <div className="glass rounded-2xl px-4 py-3 text-[13px] leading-relaxed">
+            <b className="font-normal">Raag {info.name}</b>
+            <dl className="mt-1.5 grid grid-cols-[5.5rem_1fr] gap-y-0.5 text-[12.5px] text-ink-soft">
+              <dt>Thaat</dt><dd className="text-ink">{info.thaat}</dd>
+              <dt>Prahar</dt><dd className="text-ink">{info.hour}</dd>
+              <dt>Mood</dt><dd className="text-ink">{info.mood}</dd>
+            </dl>
+          </div>
+        </>
+      )}
       <Heading>Tanpura</Heading>
       <div className="flex flex-wrap items-center gap-2">
         <Chip active={drone} onClick={toggleDrone}>{drone ? 'On' : 'Off'}</Chip>

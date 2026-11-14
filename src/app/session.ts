@@ -18,6 +18,7 @@ export * from "./ui";
 export * from "./data";
 export * from "./setups";
 export * from "./notify";
+export * from "./sleep";
 
 // ---------- start-up ----------
 

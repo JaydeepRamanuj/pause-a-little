@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import type { Prahar, RaagClockMode } from '../data/palettes';
 import { ALL_PALETTE_IDS, praharNow } from '../data/palettes';
+import { normalizeLayers, type LayerLevels } from '../app/layersMath';
 import type { MandalaId } from '../components/mandalas';
 import type { Lang } from '../data/words';
 import { LANGS } from '../data/words';
@@ -110,6 +111,8 @@ export interface State {
   history: boolean; // the History page
   clock: boolean; // clock-only full screen
   setups: Setup[]; // saved setups
+  layers: LayerLevels; // the ambient layer mixer volumes
+  sleepEnd: number | null; // when the sleep timer ends (not saved)
   notify: boolean; // tell me when a session ends while the tab is hidden
   goal: number; // daily focus goal in minutes (0 = none)
   songsOpen: boolean; // the Songs panel
@@ -189,6 +192,8 @@ export const initialState: State = {
   history: false,
   clock: false,
   setups: normalizeSetups(load<unknown>('drift:setups', [])),
+  layers: normalizeLayers(load<unknown>('drift:layers', {})),
+  sleepEnd: null,
   notify: load('drift:notify', true),
   goal: Math.max(0, Math.min(600, Math.round(Number(load('drift:goal', 120))) || 0)),
   songsOpen: false,
@@ -249,6 +254,7 @@ export const persistKeys = {
   intent: 'drift:intent',
   cycle: 'drift:cycle',
   setups: 'drift:setups',
+  layers: 'drift:layers',
   notify: 'drift:notify',
   notifyAsked: 'drift:notifyAsked',
   words: 'drift:words',
