@@ -4,6 +4,48 @@ The latest handoff is at the top. Each phase session adds its own section above 
 
 ---
 
+## Handoff 2 → Phase 3
+
+**Built (Phase 2, groundwork and honest stats):**
+
+- Split `src/app/session.ts` (1150 lines) into `timer.ts`, `sound.ts`, `words.ts`, `stats.ts` and a new `ui.ts`
+  (toast, wake lock, zen, clean screen, sheet, palette/mandala/visual setters). `session.ts` is now a thin file:
+  `export *` from all of them plus `boot()`. Components still import from `app/session`; no behaviour change.
+- Pure, tested maths in `src/app/timerMath.ts` (`phaseFor`, `messageIndex`, `partialMinutes`) and
+  `src/app/statsMath.ts` (`SessionRec`, `migrateLegacy`, `trimHistory`, `dayTotals`, `computeStats`, `MIN_PARTIAL`, `KEEP_DAYS`).
+  `currentPhase()` in `timer.ts` now just calls `phaseFor`.
+- Vitest added (`npm test`, node env); 18 tests in `src/app/__tests__/`.
+- New session log, key `drift:sessions`: array of `{start, min, intent, mode, mood, track, completed, legacy?}`.
+  `stats.ts`: `loadSessions()`, `logSession(rec)` (returns today's count), `refreshStats()`, `hm()`.
+  Migration: the first time `drift:sessions` is absent, `drift:log` (per-day `{min, n}`) becomes `n` records per day at noon
+  (`legacy: true`, `mode: null`); the old key is left untouched.
+- Partial sessions: `timer.ts` keeps a module-level `live` record (start, intent, active ms). `reset()` (also reached via
+  `setMinutes`) and `pagehide` call `endEarly()`, which logs the real active time if ≥ 5 min (`completed: false`).
+  A finished session logs the planned minutes (`completed: true`). 365 days kept (was 120).
+- `.gitignore`: `tsconfig.tsbuildinfo` (it had been committed; removed from the index). README updated (layout, `npm test`, history note).
+
+**Decisions:** "pausing for good" can't be detected, so a paused session is logged when it is reset or the tab closes
+(pause itself logs nothing, and resuming continues the same record). Active time is summed over running spans, so it works with
+"no timer" (0 min) too. Pure maths lives in separate `*Math.ts` files so tests don't import the store/audio (no jsdom needed).
+Intent is captured when the session first starts.
+
+**Verified:** `npm run build`, `npm test` (18 pass); Playwright with a fake clock: legacy log migrated (3 records, 75 min,
+old key kept); 3 min + reset not logged; 6 min + reset logged `completed:false`; full 20 min logged `completed:true`;
+status "Session 2 today"; no page errors; settings sheet checked at 1280×800 and 390×844.
+
+**Known issues / not done:** nothing reads `intent`/`mode`/`mood`/`track` yet (Phase 4 History will). Phase 1's beat swell /
+last-minutes brightening still not visually checked. Stats card still only shows today / week / streak.
+
+**Gotchas:** the modules import each other in a cycle (timer ↔ sound ↔ ui ↔ words ↔ stats); fine because everything is called at
+runtime, but don't use imported values at module top level. `hooks.*` for the music engine are set at the top of `sound.ts`
+and the `visibilitychange` listener in `ui.ts`, so those modules must stay imported (they are, via `session.ts`).
+The sound module no longer has a local `toast`; import it from `./ui`. For Phase 3 cycles, the timer's `finish()` and `start()`
+in `timer.ts` are where a phase (focus/break) would hook in; `soundDetail()` in `sound.ts` gives mood/track for the log.
+
+**Next:** Phase 3 in docs/PLAN.md.
+
+---
+
 ## Handoff 1 → Phase 2
 
 **Built (Phase 1, spinning mandalas):**

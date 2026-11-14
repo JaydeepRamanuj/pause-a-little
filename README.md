@@ -9,6 +9,7 @@ npm install
 npm run dev        # local development at http://localhost:5173
 npm run build      # production build in dist/
 npm run preview    # serve the production build locally
+npm test           # unit tests (Vitest): timer maths, stats and streaks
 ```
 
 The app needs to be served over http (dev server, `npm run preview`, or a host such as Netlify or Vercel). It no longer runs by opening a file from disk.
@@ -18,7 +19,14 @@ The app needs to be served over http (dev server, `npm run preview`, or a host s
 ```
 src/
   App.tsx                  the page: keyboard shortcuts, the palette, the toast
-  app/session.ts           the one controller: timer, sound, music queue, words, stats
+  app/session.ts           re-exports the controller parts below, plus boot()
+  app/timer.ts             the focus timer (start, pause, reset, finish) and session logging
+  app/sound.ts             tracks, music queue, ambient, tanpura, volumes
+  app/words.ts             the lines, languages and personal lines
+  app/stats.ts             the session log in localStorage and the totals
+  app/ui.ts                toasts, zen, clean screen, settings sheet, look settings
+  app/timerMath.ts         pure timer maths (phases, status message)  — tested
+  app/statsMath.ts         pure stats maths (log, totals, streak)  — tested
   audio/
     context.ts             the single AudioContext both sound engines share
     ambient.ts             generative moods (pads, bells, rain, ocean)
@@ -65,4 +73,8 @@ In Raag mode a mandala turns behind the clock. Outer rings turn slowly, inner on
 
 ## Saved data
 
-Preferences, saved YouTube tracks, and daily focus stats are kept in this browser's localStorage, under the same keys the original pages used (`drift:*` and `raag:*`), so existing data carries over when the app is served from the same address.
+Preferences, saved YouTube tracks, and your session history are kept in this browser's localStorage, under the same keys the original pages used (`drift:*` and `raag:*`), so existing data carries over when the app is served from the same address.
+
+### Session history
+
+Every session is logged under `drift:sessions` (start time, minutes, intention, mode, mood or track, and whether the timer ran out). A session you stop early (reset or close the tab) is logged with the real time spent if it was **5 minutes or more**; shorter ones are not counted. A year of history is kept. The old per-day log (`drift:log`) is carried over once and left in place.
