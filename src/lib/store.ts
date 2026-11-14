@@ -12,6 +12,13 @@ export type Source = 'ambient' | 'raag' | 'songs';
 export type ShapeStyle = 'orbs' | 'arcs' | 'waves' | 'prisms';
 const SHAPE_STYLES: ShapeStyle[] = ['orbs', 'arcs', 'waves', 'prisms'];
 export type MusicMode = 'order' | 'shuffle' | 'one';
+export type MandalaSpin = 'still' | 'slow' | 'flowing' | 'lively';
+export const MANDALA_SPINS: { id: MandalaSpin; label: string; rate: number }[] = [
+  { id: 'still', label: 'Still', rate: 0 },
+  { id: 'slow', label: 'Slow', rate: 0.5 },
+  { id: 'flowing', label: 'Flowing', rate: 1 },
+  { id: 'lively', label: 'Lively', rate: 2.2 },
+];
 export type TimerState = 'idle' | 'running' | 'paused' | 'done';
 
 export interface SavedTrack {
@@ -60,6 +67,7 @@ export interface State {
   palette: string;
   raagMode: RaagClockMode;
   mandala: MandalaId | 'none';
+  mandalaSpin: MandalaSpin; // how fast the mandala rings turn
   picker: Picker; // the colours or mandala card, from the top bar
   view: View;
   prahar: Prahar;
@@ -126,6 +134,7 @@ export const initialState: State = {
   mandala: load<MandalaId | 'none'>('raag:mandala', 'lotus') === 'none' || MANDALA_IDS.includes(load('raag:mandala', 'lotus') as MandalaId)
     ? load<MandalaId | 'none'>('raag:mandala', 'lotus')
     : 'lotus',
+  mandalaSpin: MANDALA_SPINS.some(m => m.id === load('raag:spin', 'flowing')) ? load<MandalaSpin>('raag:spin', 'flowing') : 'flowing',
   picker: null,
   view: load<View>('drift:view', savedWords.mode === 'corner' ? 'motivation' : 'focus'),
   prahar: praharNow(),
@@ -198,6 +207,7 @@ export const persistKeys = {
   palette: 'drift:palette',
   raagMode: 'raag:theme',
   mandala: 'raag:mandala',
+  mandalaSpin: 'raag:spin',
   view: 'drift:view',
   clean: 'drift:clean',
   cleanClock: 'drift:cleanClock',

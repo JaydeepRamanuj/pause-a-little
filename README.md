@@ -59,6 +59,10 @@ Add `time: 'dawn' | 'day' | 'dusk' | 'night'` to have a track marked "suits now"
 | F | fullscreen |
 | Esc | close the sheet |
 
+## The mandala
+
+In Raag mode a mandala turns behind the clock. Outer rings turn slowly, inner ones faster, in alternating directions, with a soft glow at the centre. Settings → Screen → *Mandala spin* (Still / Slow / Flowing / Lively) sets the speed. It eases almost still when you pause, glows a little brighter in the last three minutes, blooms once when a session finishes, and swells gently with the music's beat. It respects reduced-motion settings.
+
 ## Saved data
 
 Preferences, saved YouTube tracks, and daily focus stats are kept in this browser's localStorage, under the same keys the original pages used (`drift:*` and `raag:*`), so existing data carries over when the app is served from the same address.

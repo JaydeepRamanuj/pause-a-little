@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Scene } from './components/Scene';
 import { TopBar } from './components/TopBar';
@@ -14,11 +14,22 @@ import {
   boot, cyclePalette, setClean, setPrahar, setSheet, setSongsPanel, setSoundOn, setView, reset, step, toggleDrone, toggleSession, wake,
 } from './app/session';
 import { applyPaletteVars } from './lib/theme';
-import { getState, useStore } from './lib/store';
+import { getState, MANDALA_SPINS, useStore, type TimerState } from './lib/store';
 import { cn } from './lib/cn';
 import { toggleFullscreen } from './lib/fullscreen';
 import { resolvePalette } from './data/palettes';
 import { fmt } from './lib/util';
+
+/** Counts finished sessions, so the mandala can bloom once for each. */
+function useDoneCount(timer: TimerState) {
+  const n = useRef(0);
+  const prev = useRef(timer);
+  if (prev.current !== timer) {
+    if (timer === 'done') n.current += 1;
+    prev.current = timer;
+  }
+  return n.current;
+}
 
 const WAKE_EVENTS = ['pointermove', 'pointerdown', 'keydown', 'touchstart'] as const;
 
@@ -54,6 +65,8 @@ export default function App() {
   const songsOpen = useStore(s => s.songsOpen);
   const shapeStyle = useStore(s => s.shapeStyle);
   const songVisual = useStore(s => s.songVisual);
+  const spinId = useStore(s => s.mandalaSpin);
+  const bloom = useDoneCount(timer);
   const beatOn = useStore(s => s.source === 'songs' && s.timer === 'running');
   const hidden = clean && !revealed && !sheet && !songsOpen;
 
@@ -114,6 +127,10 @@ export default function App() {
         palette={palette}
         mandala={mandala === 'none' ? 'lotus' : mandala}
         mandalaOn={mandala !== 'none' && source === 'raag'}
+        mandalaRate={(MANDALA_SPINS.find(m => m.id === spinId)?.rate ?? 1) * (timer === 'paused' ? 0.04 : timer === 'done' ? 0.6 : 1)}
+        mandalaLift={timer === 'running' && minutes > 0 && remaining <= 3 * 60000}
+        mandalaBloom={bloom}
+        mandalaBeat={source === 'raag' && timer === 'running'}
         beatOn={beatOn}
         shapesOn={source === 'ambient'}
         shapeStyle={shapeStyle}

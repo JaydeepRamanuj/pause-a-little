@@ -46,6 +46,7 @@ import type { MandalaId } from "../components/mandalas";
 import type { CalmVisualId } from "../components/calmArt";
 import type {
   Line,
+  MandalaSpin,
   MusicMode,
   Picker,
   SavedTrack,
@@ -905,6 +906,11 @@ export function setMandala(id: MandalaId | "none") {
 export function setSongVisual(id: CalmVisualId) {
   persist("songVisual", id);
   setState({ songVisual: id });
+}
+
+export function setMandalaSpin(id: MandalaSpin) {
+  persist("mandalaSpin", id);
+  setState({ mandalaSpin: id });
 }
 
 export function setShapeStyle(id: ShapeStyle) {

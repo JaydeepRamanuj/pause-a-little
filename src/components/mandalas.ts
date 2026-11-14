@@ -1,6 +1,6 @@
 // Four mandala designs for the raag palettes. Each is an SVG drawn with
 // `currentColor`, so the palette's accent colour shows through. The animation
-// classes (m-spin-a, m-breathe, m-shimmer, m-draw, m-pulse) are defined in index.css.
+// classes (m-ring, m-breathe, m-shimmer, m-draw, m-pulse) are defined in index.css.
 // The markup is built from constants only, so injecting it as HTML is safe.
 
 export const MANDALA_IDS = ['lotus', 'yantra', 'peacock', 'rangoli', 'chakra', 'flower', 'kolam', 'sun'] as const;
@@ -43,15 +43,21 @@ function dots(r: number, n: number, size: number) {
   return s;
 }
 
+// Depth: level 1 is the outermost ring and turns slowest, level 4 the innermost and quickest.
+// Directions alternate. The durations are one turn in seconds; --m-speed rate is applied live (see Scene.tsx).
+const TURN = [0, 220, 150, 100, 64];
+const spin = (level: 1 | 2 | 3 | 4 | number, reverse: boolean) =>
+  `<g class="m-ring" style="--d:${TURN[level]}s;--dir:${reverse ? 'reverse' : 'normal'}">`;
+
 const svg = (body: string) =>
   `<svg viewBox="0 0 1000 1000" fill="none" stroke="currentColor" stroke-width="1.1" class="h-full w-full overflow-visible">${body}</svg>`;
 
 // 1. Lotus: two rings of petals, the outer turning one way, the inner the other.
 const lotus = () => svg(
-  `<g class="m-spin-b">${ring(16, i => `<path class="m-breathe" style="animation-delay:${-i * 0.4}s" d="${petal(330, 470, 44)}"/>`)}</g>` +
-  `<g class="m-spin-a">${ring(8, i => `<path class="m-breathe" style="animation-delay:${-i * 0.7}s" d="${petal(110, 300, 62)}"/>`, 22.5)}</g>` +
+  `${spin(1, true)}${ring(16, i => `<path class="m-breathe" style="animation-delay:${-i * 0.4}s" d="${petal(330, 470, 44)}"/>`)}</g>` +
+  `${spin(3, false)}${ring(8, i => `<path class="m-breathe" style="animation-delay:${-i * 0.7}s" d="${petal(110, 300, 62)}"/>`, 22.5)}</g>` +
   `<circle cx="500" cy="500" r="110"/><circle cx="500" cy="500" r="96"/>` +
-  `<g class="m-spin-a">${dots(190, 24, 2.4)}</g>` +
+  `${spin(4, true)}${dots(190, 24, 2.4)}</g>` +
   `<circle class="m-pulse" cx="500" cy="500" r="16" fill="currentColor" stroke="none"/>`,
 );
 
@@ -67,10 +73,10 @@ const triangle = (R: number, down: boolean) => {
 };
 const yantra = () => svg(
   [400, 320, 240, 165, 100].map((R, k) =>
-    `<g class="${k % 2 ? 'm-spin-b' : 'm-spin-a'}">${triangle(R, k % 2 === 1)}</g>`,
+    `${spin(Math.min(k + 1, 4), k % 2 === 1)}${triangle(R, k % 2 === 1)}</g>`,
   ).join('') +
   `<circle cx="500" cy="500" r="430"/>` +
-  `<g class="m-spin-b">${ring(16, () => `<circle class="m-pulse" cx="500" cy="70" r="5" fill="currentColor" stroke="none"/>`)}</g>` +
+  `${spin(2, true)}${ring(16, () => `<circle class="m-pulse" cx="500" cy="70" r="5" fill="currentColor" stroke="none"/>`)}</g>` +
   `<circle class="m-pulse" cx="500" cy="500" r="12" fill="currentColor" stroke="none"/>`,
 );
 
@@ -79,10 +85,10 @@ const eye = (i: number) =>
   `<g class="m-shimmer" style="animation-delay:${-i * 0.5}s">` +
   `<circle cx="500" cy="90" r="34"/><circle cx="500" cy="90" r="18" fill="currentColor" stroke="none"/></g>`;
 const peacock = () => svg(
-  `<g class="m-spin-a">${ring(12, i => `<path d="M500 380 Q580 180 500 10 Q420 180 500 380Z"/>` + eye(i), 0)}</g>` +
-  `<g class="m-spin-b">${ring(12, () => `<path d="${petal(330, 430, 14)}"/>`, 15)}</g>` +
+  `${spin(1, false)}${ring(12, i => `<path d="M500 380 Q580 180 500 10 Q420 180 500 380Z"/>` + eye(i), 0)}</g>` +
+  `${spin(3, true)}${ring(12, () => `<path d="${petal(330, 430, 14)}"/>`, 15)}</g>` +
   `<circle cx="500" cy="500" r="300"/><circle cx="500" cy="500" r="250"/>` +
-  `<g class="m-spin-b">${dots(275, 36, 2)}</g>` +
+  `${spin(2, true)}${dots(275, 36, 2)}</g>` +
   `<circle class="m-pulse" cx="500" cy="500" r="24" fill="currentColor" stroke="none"/>`,
 );
 
@@ -99,10 +105,9 @@ const rangoli = () => {
     };
     let d = '';
     for (let i = 0; i < n; i++) d += `${i ? 'L' : 'M'}${at((i * step) % n)} `;
-    s += `<path class="m-draw" pathLength="1" style="animation-delay:${-k * 1.4}s" d="${d}Z"/>`;
-    s += dots(r, n, 2.6);
+    s += `${spin(1 + (k % 4), k % 2 === 0)}<path class="m-draw" pathLength="1" style="animation-delay:${-k * 1.4}s" d="${d}Z"/>${dots(r, n, 2.6)}</g>`;
   });
-  s += `<g class="m-spin-a">${ring(8, i => `<path class="m-breathe" style="animation-delay:${-i * 0.6}s" d="${petal(40, 150, 26)}"/>`)}</g>`;
+  s += `${spin(4, false)}${ring(8, i => `<path class="m-breathe" style="animation-delay:${-i * 0.6}s" d="${petal(40, 150, 26)}"/>`)}</g>`;
   return svg(s);
 };
 
@@ -116,8 +121,8 @@ const chakra = () => {
   }
   return svg(
     `<circle cx="500" cy="500" r="470"/><circle cx="500" cy="500" r="445"/>` +
-    `<g class="m-spin-a">${spokes}${dots(458, 24, 4)}</g>` +
-    `<g class="m-spin-b">${ring(8, i => `<circle class="m-breathe" style="animation-delay:${-i * 0.6}s" cx="500" cy="235" r="26"/>`)}</g>` +
+    `${spin(1, false)}${spokes}${dots(458, 24, 4)}</g>` +
+    `${spin(3, true)}${ring(8, i => `<circle class="m-breathe" style="animation-delay:${-i * 0.6}s" cx="500" cy="235" r="26"/>`)}</g>` +
     `<circle cx="500" cy="500" r="95"/><circle cx="500" cy="500" r="70"/>` +
     `<circle class="m-pulse" cx="500" cy="500" r="26" fill="currentColor" stroke="none"/>`,
   );
@@ -128,10 +133,10 @@ const flower = () => {
   const circles = (cls: string, offset: number) => ring(6, i =>
     `<circle class="${cls}" style="animation-delay:${-i * 0.8}s" cx="500" cy="${f(500 - 150)}" r="150"/>`, offset);
   return svg(
-    `<g class="m-spin-a">${circles('m-breathe', 0)}</g>` +
-    `<g class="m-spin-b">${circles('m-breathe', 30)}</g>` +
+    `${spin(2, false)}${circles('m-breathe', 0)}</g>` +
+    `${spin(3, true)}${circles('m-breathe', 30)}</g>` +
     `<circle cx="500" cy="500" r="300"/><circle cx="500" cy="500" r="470"/>` +
-    `<g class="m-spin-a">${dots(470, 36, 2.2)}</g>` +
+    `${spin(1, false)}${dots(470, 36, 2.2)}</g>` +
     `<circle class="m-pulse" cx="500" cy="500" r="14" fill="currentColor" stroke="none"/>`,
   );
 };
@@ -151,16 +156,16 @@ const kolam = () => {
     curves += `<path class="m-draw" pathLength="1" style="animation-delay:${-(k++) * 0.45}s" d="M${x0} ${y0} Q${f(mx + off)} ${f(my - off)} ${x1} ${y1}"/>`;
     curves += `<path class="m-draw" pathLength="1" style="animation-delay:${-(k++) * 0.45}s" d="M${x1} ${y0} Q${f(mx - off)} ${f(my - off)} ${x0} ${y1}"/>`;
   }
-  return svg(dotsSvg + curves + `<circle cx="500" cy="500" r="430" class="m-pulse" stroke-dasharray="2 10"/>`);
+  return svg(`${spin(2, false)}${dotsSvg}${curves}</g>${spin(1, true)}<circle cx="500" cy="500" r="430" class="m-pulse" stroke-dasharray="2 10"/></g>`);
 };
 
 // 8. Sun: a ring of triangular rays, a turning wheel of petals and a pulsing core.
 const sun = () => {
   const ray = () => `<path d="M500 ${f(500 - 300)} L${f(500 + 22)} ${f(500 - 470)} L${f(500 - 22)} ${f(500 - 470)}Z" fill="currentColor" fill-opacity=".08"/>`;
   return svg(
-    `<g class="m-spin-a">${ring(24, () => ray())}</g>` +
+    `${spin(1, false)}${ring(24, () => ray())}</g>` +
     `<circle cx="500" cy="500" r="300"/><circle cx="500" cy="500" r="270"/>` +
-    `<g class="m-spin-b">${ring(16, i => `<path class="m-breathe" style="animation-delay:${-i * 0.5}s" d="${petal(120, 250, 34)}"/>`)}</g>` +
+    `${spin(3, true)}${ring(16, i => `<path class="m-breathe" style="animation-delay:${-i * 0.5}s" d="${petal(120, 250, 34)}"/>`)}</g>` +
     `<circle cx="500" cy="500" r="110"/>` +
     `<circle class="m-pulse" cx="500" cy="500" r="46" fill="currentColor" fill-opacity=".15"/>`,
   );

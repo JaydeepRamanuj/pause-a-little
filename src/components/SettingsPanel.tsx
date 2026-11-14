@@ -3,10 +3,10 @@ import { motion } from 'motion/react';
 import { canInstall, install, subscribeInstall } from '../lib/pwa';
 import { LANGS } from '../data/words';
 import {
-  hm, setClean, setCleanClock, setDroneKeyIndex, setDroneVolume, setSheet,
+  hm, setClean, setCleanClock, setDroneKeyIndex, setMandalaSpin, setDroneVolume, setSheet,
   setShapeStyle, setSongVisual, setWords, toggleDrone, toggleLang,
 } from '../app/session';
-import { useStore } from '../lib/store';
+import { MANDALA_SPINS, useStore } from '../lib/store';
 import type { ShapeStyle } from '../lib/store';
 import { cn } from '../lib/cn';
 import { Chip } from './Focus';
@@ -96,6 +96,7 @@ function AppSection() {
 function ScreenSection() {
   const clean = useStore(s => s.clean);
   const cleanClock = useStore(s => s.cleanClock);
+  const spinSpeed = useStore(s => s.mandalaSpin);
   return (
     <>
       <Heading>Screen</Heading>
@@ -105,6 +106,15 @@ function ScreenSection() {
       </div>
       <p className="mx-0.5 mt-3 text-[11.5px] leading-relaxed text-ink-soft">
         Clean screen hides every control. Move the mouse or press a key to bring them back for a few seconds. Press H to toggle it.
+      </p>
+      <p className="mt-4 text-[11px] uppercase tracking-[.2em] text-ink-soft">Mandala spin</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {MANDALA_SPINS.map(m => (
+          <Chip key={m.id} active={spinSpeed === m.id} onClick={() => setMandalaSpin(m.id)}>{m.label}</Chip>
+        ))}
+      </div>
+      <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+        How fast the rings of the Raag mandala turn. It eases still when you pause.
       </p>
     </>
   );
