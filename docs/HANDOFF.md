@@ -2,6 +2,45 @@
 
 The latest handoff is at the top. Each phase session adds its own section above the previous one.
 
+## Handoff 3 → Phase 4
+
+**Built (Phase 3, focus and break cycles, plus breathing):**
+
+- `src/app/cycleMath.ts` (new, pure): `Block` (`focus|short|long`), `CycleSettings` + `DEFAULT_CYCLE`, `normalizeCycle`, `roundAfterFocus`,
+  `breakAfter`, `roundAfterBreak`, `blockMinutes`, `blockLabel`. `src/app/breathMath.ts` (new, pure): `BREATHS` (box, 478, slow),
+  `breathAt(id, t)` → `{kind, level 0..1}`, `mandalaScale(level)`. `src/lib/breakPalette.ts`: `breakPalette(p)` (blends toward sage-teal, own accent).
+  9 new tests in `src/app/__tests__/cycle.test.ts` (27 total).
+- `src/lib/store.ts`: `cycle` (persisted as `drift:cycle`), `block`, `round` (focus sessions done since the last long break), `lookBack`
+  (start time of the session waiting for a look-back, or null). Default focus minutes for new users is now 25 (was 20).
+- `src/app/timer.ts`: `durationMs()` follows the block. `finish()` branches: focus → logs, advances `round`, sets `block` to the next break with
+  `timer:'done'` and that break's length in `remaining`; break → back to focus, nothing logged. `start()` from `done` therefore starts the next block.
+  New: `skipBreak()`, `setCycle(patch)`, `answerLookBack(feel?, note?)`, auto-start timer (`scheduleAuto`: 6.5 s, or 20 s while the look-back card is open).
+  `reset()` returns to a fresh focus and round 0. `live` (the logged record) exists only on focus blocks. `currentPhase()` gives no focus lines on breaks.
+- `src/app/sound.ts`: `soundStart()` on a break calls `breakSoundStart` — Raag: tanpura only (`droneVol × 0.9`, regardless of the drone setting); Ambient/Songs: a
+  slow ambient mood (`ocean`, or `drift` if the person uses ocean) at 70 % volume. `soundStop` is unchanged.
+- `src/app/stats.ts` / `statsMath.ts`: `SessionRec` gets optional `feel` (1–3) and `note`; `annotateSession(start, patch)`.
+- `src/components/Focus.tsx`: `RoundDots` inside the dial, `Breathing` (rAF; scales the disc and calls `setMandalaBreath`), `LookBack` card (replaces the intention input
+  while `lookBack` is set and the timer is done), "Skip break" chip replaces the duration chips on breaks. `App.tsx`: softer palette while a break runs/pauses
+  (`useMemo` on `breakPalette`), `B` shortcut, "break" in the tab title. `SettingsPanel.tsx`: `CycleSection` (Settings → Focus & breaks). README: cycles section, keyboard.
+
+**Decisions:** cycles default ON; breathing default "Slow"; the palette softens only while a break is running or paused (not while waiting on the done screen).
+Dial ring depletes over the break length. The duration presets/custom minutes set the *focus* length and are hidden on breaks. Breaks are never logged
+(only focus time counts toward stats). The look-back lives on the session record rather than a new log.
+
+**Verified:** `npm run build`, `npm test` (27 pass). Playwright (fake clock, `fastForward`) at 1280×800 and 390×844: a 1-minute focus finishes → "Session 1 done · short break next",
+look-back card appears, saving writes `feel:2, note` onto the logged record; "Start break" → 00:56 with "HOLD" text, "break" in the tab title, round dots; `B` skips back to a
+ready focus; no page errors. Audio itself (break sound, bell) was not heard.
+
+**Known issues / not done:** break sound and the real mandala breathing (Raag mode) were not visually checked together; NowPlaying still says the focus mood ("Drift") during a break.
+The look-back card has no keyboard shortcut. Stats UI still shows only today/week/streak, and nothing displays `feel`/`note` yet (Phase 4 History should).
+Auto-start is untested in the browser (logic only).
+
+**Gotchas:** Playwright `clock.runFor` over many minutes hangs here (thousands of timers) — use `clock.fastForward` and a 1-minute session. `timer:'done'` now also means "next block is
+waiting" and `block` is already the *next* block at that point; code that reads `block` on the done screen sees the upcoming one. For Phase 5 saved setups, include `cycle` and `minutes`.
+For the Phase 4 history list, sessions have `feel`/`note`; for the daily goal ring, `computeStats` only counts logged focus sessions.
+
+**Next:** Phase 4 in docs/PLAN.md.
+
 ---
 
 ## Handoff 2 → Phase 3

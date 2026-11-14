@@ -394,6 +394,7 @@ export function soundStart() {
   const s = getState();
   if (!s.soundOn) return;
   gen++;
+  if (s.block !== "focus") return breakSoundStart(s);
   if (s.source === "ambient") {
     ambient.play(s.ambientVol, s.mood);
   } else {
@@ -403,6 +404,21 @@ export function soundStart() {
   }
   // the tanpura is part of Raag only
   if (getState().drone && getState().source === "raag") droneStart(getState().droneVol);
+}
+
+/** Breaks sound lighter: the tanpura alone for Raag, a soft ambient mood otherwise. */
+/** A slow, open mood for breaks (never the same one the person focuses with). */
+const breakMood = (focusMood: string) => (focusMood === "ocean" ? "drift" : "ocean");
+function breakSoundStart(s: State) {
+  musicOn = false;
+  if (cur) musicPause(0.8);
+  if (s.source === "raag") {
+    ambient.stop(0.8);
+    droneStart(s.droneVol * 0.9);
+  } else {
+    droneStop(1);
+    ambient.play(s.ambientVol * 0.7, breakMood(s.mood));
+  }
 }
 
 /** Stop everything that sounds, fading out over `fade` seconds. */

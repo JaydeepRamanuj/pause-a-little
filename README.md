@@ -57,7 +57,8 @@ Add `time: 'dawn' | 'day' | 'dusk' | 'night'` to have a track marked "suits now"
 | Key | Action |
 |---|---|
 | Space | start / pause the session |
-| R | reset |
+| R | reset (starts the cycle again) |
+| B | skip the break |
 | C | motivation corner on / off |
 | M | sound on / off |
 | P | next colour palette |
@@ -66,6 +67,16 @@ Add `time: 'dawn' | 'day' | 'dusk' | 'night'` to have a track marked "suits now"
 | L | open / close the Atmosphere sheet |
 | F | fullscreen |
 | Esc | close the sheet |
+
+## Focus and break cycles
+
+Focus (25 min by default, set with the chips on the timer), then a short break (5 min), with a long break (15 min) every 4th round. Dots under the time show how far through the cycle you are. All of it is in Settings → *Focus & breaks*: break lengths, how often the long break comes, and an off switch for a single plain timer.
+
+- **Breaks look and sound different:** a softer sage palette and dial colour, and a lighter sound (the tanpura alone in Raag, an open ambient mood otherwise).
+- **Guided breathing** on breaks: Box 4-4-4-4, 4-7-8 or Slow (4 in, 6 out), or off. The disc behind the time and the mandala grow and shrink with the breath, with *Breathe in / Hold / Breathe out* text. With reduced motion only the text changes.
+- **Look-back** after a focus session: one to three dots (Scattered / Steady / Deep) and an optional note, saved on the session in `drift:sessions` (`feel`, `note`). Skippable.
+- **Start next automatically** begins the next block by itself (it waits a little longer if the look-back is showing). *Skip break* (or B) goes straight back to focus.
+- Only focus time is logged; breaks are not.
 
 ## The mandala
 
@@ -77,4 +88,4 @@ Preferences, saved YouTube tracks, and your session history are kept in this bro
 
 ### Session history
 
-Every session is logged under `drift:sessions` (start time, minutes, intention, mode, mood or track, and whether the timer ran out). A session you stop early (reset or close the tab) is logged with the real time spent if it was **5 minutes or more**; shorter ones are not counted. A year of history is kept. The old per-day log (`drift:log`) is carried over once and left in place.
+Every session is logged under `drift:sessions` (start time, minutes, intention, mode, mood or track, whether the timer ran out, and the look-back if you gave one). A session you stop early (reset or close the tab) is logged with the real time spent if it was **5 minutes or more**; shorter ones are not counted. A year of history is kept. The old per-day log (`drift:log`) is carried over once and left in place.

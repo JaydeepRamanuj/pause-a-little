@@ -13,6 +13,8 @@ export interface SessionRec {
   mood: string | null; // the ambient mood id
   track: string | null; // the title of the music track, if there was one
   completed: boolean; // the timer ran out (false = ended early)
+  feel?: 1 | 2 | 3; // the look-back: how the session felt (1 hard … 3 good)
+  note?: string; // the look-back note
   legacy?: true; // came from the old per-day log
 }
 

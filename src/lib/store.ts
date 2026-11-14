@@ -7,6 +7,7 @@ import { LANGS } from '../data/words';
 import { MANDALA_IDS } from '../components/mandalas';
 import { CALM_VISUALS, type CalmVisualId } from '../components/calmArt';
 import { load, save } from './storage';
+import { normalizeCycle, type Block, type CycleSettings } from '../app/cycleMath';
 
 export type Source = 'ambient' | 'raag' | 'songs';
 export type ShapeStyle = 'orbs' | 'arcs' | 'waves' | 'prisms';
@@ -91,6 +92,10 @@ export interface State {
   timer: TimerState;
   remaining: number;
   intent: string;
+  cycle: CycleSettings; // focus and break cycles
+  block: Block; // what the timer is counting now
+  round: number; // focus sessions finished since the last long break
+  lookBack: number | null; // start time of the session waiting for a look-back
   // words
   words: Words;
   line: Line | null;
@@ -117,7 +122,7 @@ const savedWords = load<Partial<Words> & { lang?: Lang; mode?: 'timer' | 'corner
 // older saves kept one language; now there can be several
 const savedLangs = (savedWords.langs ?? (savedWords.lang ? [savedWords.lang] : []))
   .filter((l): l is Lang => LANGS.some(x => x.id === l));
-const minutes = load('drift:minutes', 20);
+const minutes = load('drift:minutes', 25);
 // the sound types: Ambient, Raag (the playlist) and Calm songs. Older saves called Raag 'music'.
 const savedSourceRaw = load<string>('drift:source', 'ambient');
 const savedSource: Source = savedSourceRaw === 'music'
@@ -156,6 +161,10 @@ export const initialState: State = {
   timer: 'idle',
   remaining: minutes * 60000,
   intent: load('drift:intent', ''),
+  cycle: normalizeCycle(load<Partial<CycleSettings>>('drift:cycle', {})),
+  block: 'focus',
+  round: 0,
+  lookBack: null,
   words: {
     langs: savedLangs.length ? savedLangs : ['en'],
     calm: savedWords.calm ?? true,
@@ -226,6 +235,7 @@ export const persistKeys = {
   saved: 'raag:yt',
   minutes: 'drift:minutes',
   intent: 'drift:intent',
+  cycle: 'drift:cycle',
   words: 'drift:words',
 } as const;
 

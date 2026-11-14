@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { canInstall, install, subscribeInstall } from '../lib/pwa';
 import { LANGS } from '../data/words';
 import {
-  hm, setClean, setCleanClock, setDroneKeyIndex, setMandalaSpin, setDroneVolume, setSheet,
+  hm, setCycle, setClean, setCleanClock, setDroneKeyIndex, setMandalaSpin, setDroneVolume, setSheet,
   setShapeStyle, setSongVisual, setWords, toggleDrone, toggleLang,
 } from '../app/session';
 import { MANDALA_SPINS, useStore } from '../lib/store';
 import type { ShapeStyle } from '../lib/store';
 import { cn } from '../lib/cn';
 import { Chip } from './Focus';
+import { BREATHS } from '../app/breathMath';
 import { Heading, Slider, fieldClass } from './controls';
 import { CALM_VISUALS } from './calmArt';
 import { CloseIcon } from './icons';
@@ -62,6 +63,7 @@ export function SettingsPanel() {
           <AppSection />
           <WordsSection />
           <FocusSection />
+          <CycleSection />
 
           <p className="mt-6 text-[11px] uppercase tracking-[.2em] text-ink-soft">
             {source === 'ambient' ? 'Ambient' : source === 'raag' ? 'Raag' : 'Calm songs'}
@@ -258,3 +260,58 @@ function WordsSection() {
   );
 }
 
+
+// ---------- focus and break cycles ----------
+
+function CycleSection() {
+  const c = useStore(s => s.cycle);
+  const minutes = useStore(s => s.minutes);
+  const breath = BREATHS.find(b => b.id === c.breathing);
+  return (
+    <>
+      <Heading>Focus &amp; breaks</Heading>
+      <div className="flex flex-wrap gap-2">
+        <Chip active={c.on} onClick={() => setCycle({ on: !c.on })}>{c.on ? 'Cycles on' : 'Cycles off'}</Chip>
+      </div>
+      <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+        {c.on
+          ? `Focus (${minutes || '—'} min, set on the timer), then a short break, with a long break every ${c.every}th round. Reset starts the cycle again.`
+          : 'Off: one plain timer, like a single sitting.'}
+      </p>
+      {c.on && (
+        <>
+          <Row label="Short break">
+            {[3, 5, 10].map(m => <Chip key={m} active={c.shortMin === m} onClick={() => setCycle({ shortMin: m })}>{m}m</Chip>)}
+          </Row>
+          <Row label="Long break">
+            {[10, 15, 20, 30].map(m => <Chip key={m} active={c.longMin === m} onClick={() => setCycle({ longMin: m })}>{m}m</Chip>)}
+          </Row>
+          <Row label="Long break every">
+            {[3, 4, 5, 6].map(n => <Chip key={n} active={c.every === n} onClick={() => setCycle({ every: n })}>{n}</Chip>)}
+          </Row>
+          <Row label="Breathing on breaks">
+            {BREATHS.map(b => <Chip key={b.id} active={c.breathing === b.id} onClick={() => setCycle({ breathing: b.id })}>{b.label}</Chip>)}
+            <Chip active={c.breathing === 'off'} onClick={() => setCycle({ breathing: 'off' })}>Off</Chip>
+          </Row>
+          {breath && <p className="mx-0.5 mt-2 text-[11.5px] text-ink-soft">{breath.hint}. The ring and the mandala grow and shrink with the breath.</p>}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Chip active={c.auto} onClick={() => setCycle({ auto: !c.auto })}>Start next automatically</Chip>
+            <Chip active={c.lookBack} onClick={() => setCycle({ lookBack: !c.lookBack })}>Look-back after focus</Chip>
+          </div>
+          <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+            Breaks use a softer palette, and a lighter sound: the tanpura alone for Raag, an open ambient mood otherwise. Press B to skip a break.
+          </p>
+        </>
+      )}
+    </>
+  );
+}
+
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="mt-3">
+      <p className="mx-0.5 mb-1.5 text-xs text-ink-soft">{label}</p>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}

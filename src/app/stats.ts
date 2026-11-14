@@ -24,6 +24,12 @@ export function logSession(rec: SessionRec): number {
   return computeStats(recs).today.n;
 }
 
+/** Add the look-back (how it felt, a note) to the session that started at `start`. */
+export function annotateSession(start: number, patch: Pick<SessionRec, "feel" | "note">) {
+  const recs = loadSessions().map((r) => (r.start === start ? { ...r, ...patch } : r));
+  save(KEY, recs);
+}
+
 export function refreshStats() {
   setState({ stats: computeStats(loadSessions()) });
 }

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Scene } from './components/Scene';
 import { TopBar } from './components/TopBar';
@@ -11,13 +11,14 @@ import { AudioPane } from './components/AudioPane';
 import { NowPlaying } from './components/NowPlaying';
 import { CleanClock } from './components/CleanClock';
 import {
-  boot, cyclePalette, setClean, setPrahar, setSheet, setSongsPanel, setSoundOn, setView, reset, step, toggleDrone, toggleSession, wake,
+  boot, cyclePalette, setClean, setPrahar, setSheet, setSongsPanel, setSoundOn, setView, reset, skipBreak, step, toggleDrone, toggleSession, wake,
 } from './app/session';
 import { applyPaletteVars } from './lib/theme';
 import { getState, MANDALA_SPINS, useStore, type TimerState } from './lib/store';
 import { cn } from './lib/cn';
 import { toggleFullscreen } from './lib/fullscreen';
 import { resolvePalette } from './data/palettes';
+import { breakPalette } from './lib/breakPalette';
 import { fmt } from './lib/util';
 
 /** Counts finished sessions, so the mandala can bloom once for each. */
@@ -71,7 +72,10 @@ export default function App() {
   const hidden = clean && !revealed && !sheet && !songsOpen;
 
   const source = useStore(s => s.source);
-  const palette = resolvePalette(paletteId, raagMode, prahar);
+  // on a break the palette turns softer
+  const onBreak = useStore(s => s.cycle.on && s.block !== 'focus' && (s.timer === 'running' || s.timer === 'paused'));
+  const base = resolvePalette(paletteId, raagMode, prahar);
+  const palette = useMemo(() => (onBreak ? breakPalette(base) : base), [onBreak, base]);
 
   // before paint, so the first frame already has the right colours
   useLayoutEffect(() => { applyPaletteVars(palette); }, [palette]);
@@ -84,11 +88,11 @@ export default function App() {
 
   useEffect(() => {
     const time = minutes ? fmt(remaining) : '∞';
-    document.title = timer === 'running' ? `${time} · pause a little`
+    document.title = timer === 'running' ? `${time}${onBreak ? ' break' : ''} · pause a little`
       : timer === 'paused' ? `❚❚ ${time} · pause a little`
         : timer === 'done' ? '✦ Time’s up · pause a little'
           : 'pause a little';
-  }, [timer, remaining, minutes]);
+  }, [timer, remaining, minutes, onBreak]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -101,6 +105,7 @@ export default function App() {
       const k = e.key.toLowerCase();
       if (k === ' ' || k === 'spacebar') { e.preventDefault(); toggleSession(); }
       else if (k === 'r') reset();
+      else if (k === 'b') skipBreak();
       else if (k === 'c') setView(s.view === 'focus' ? 'motivation' : s.view === 'motivation' ? 'off' : 'focus');
       else if (k === 'm') setSoundOn(!s.soundOn);
       else if (k === 'p') cyclePalette();
