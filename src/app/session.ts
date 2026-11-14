@@ -8,6 +8,7 @@ import { praharNow } from "../data/palettes";
 import { getState, setState } from "../lib/store";
 import { refreshStats } from "./stats";
 import { nextLine } from "./words";
+import { setupMedia } from "./media";
 
 export * from "./sound";
 export * from "./timer";
@@ -15,6 +16,8 @@ export * from "./words";
 export * from "./stats";
 export * from "./ui";
 export * from "./data";
+export * from "./setups";
+export * from "./notify";
 
 // ---------- start-up ----------
 
@@ -22,5 +25,6 @@ export function boot() {
   setDroneKey(getState().droneKey);
   setState({ prahar: praharNow() });
   refreshStats();
+  setupMedia();
   if (getState().view === "motivation") nextLine(true);
 }

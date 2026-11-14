@@ -111,6 +111,27 @@ export function setHistory(open: boolean) {
   }
 }
 
+/** Clock-only full screen: just the time of day, nothing else. */
+export function setClock(on: boolean) {
+  setState({ clock: on });
+  if (on) {
+    clearTimeout(zenTimer);
+    setState({ sheet: false, history: false, picker: null, zen: false });
+    try {
+      if (!document.fullscreenElement) void document.documentElement.requestFullscreen?.();
+    } catch {
+      /* the page still fills the window */
+    }
+  } else {
+    try {
+      if (document.fullscreenElement) void document.exitFullscreen?.();
+    } catch {
+      /* nothing to do */
+    }
+    if (getState().timer === "running") scheduleZen();
+  }
+}
+
 export function setGoal(min: number) {
   const v = Math.max(0, Math.min(600, Math.round(min)));
   persist("goal", v);

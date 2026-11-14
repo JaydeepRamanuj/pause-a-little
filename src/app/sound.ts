@@ -177,6 +177,13 @@ export function soundDetail(): { mood: string | null; track: string | null } {
   return { mood: null, track: cur?.title ?? null };
 }
 
+/** The name of what is sounding, for the lock screen: the track, or the ambient mood. */
+export function soundTitle(): string | null {
+  const s = getState();
+  if (s.source === "ambient") return MOODS.find((m) => m.id === s.mood)?.name ?? null;
+  return cur?.title ?? null;
+}
+
 /** Stop the short mood preview (the timer is starting). */
 export function cancelPreview() {
   clearTimeout(previewTimer);
@@ -465,6 +472,17 @@ export function setSource(source: Source) {
   setTimeout(() => {
     if (tok === switchTok2 && getState().timer === "running") soundStart();
   }, SWITCH_FADE * 1000 + 200);
+}
+
+/** Choose a sound type, mood and track for a saved setup, without starting anything. */
+export function applySound(source: Source, mood: string, track: string | null) {
+  if (getState().timer === "running") return;
+  cur = null;
+  pendingSeek = null;
+  persist("source", source);
+  setState({ source, musicKey: null, musicChapter: null, ytOn: false });
+  if (MOODS.some((m) => m.id === mood)) setMood(mood, false);
+  if (track && allTracks().some((t) => t.key === track && t.origin !== "session")) save(persistKeys.lastTrack, track);
 }
 
 export function setMood(id: string, withPreview: boolean) {

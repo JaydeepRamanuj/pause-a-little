@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { canInstall, install, subscribeInstall } from '../lib/pwa';
 import { LANGS } from '../data/words';
 import {
-  hm, setCycle, setGoal, setHistory, setClean, setCleanClock, setDroneKeyIndex, setMandalaSpin, setDroneVolume, setSheet,
+  applySetup, deleteSetup, hm, notifyPermission, saveSetup, setClock, setCycle, setNotify, setGoal, setHistory, setClean, setCleanClock, setDroneKeyIndex, setMandalaSpin, setDroneVolume, setSheet,
   setShapeStyle, setSongVisual, setWords, toggleDrone, toggleLang,
 } from '../app/session';
 import { MANDALA_SPINS, useStore } from '../lib/store';
@@ -65,6 +65,8 @@ export function SettingsPanel() {
           <WordsSection />
           <FocusSection />
           <CycleSection />
+          <SetupSection />
+          <NotifySection />
           <DataSection />
 
           <p className="mt-6 text-[11px] uppercase tracking-[.2em] text-ink-soft">
@@ -111,6 +113,9 @@ function ScreenSection() {
       <p className="mx-0.5 mt-3 text-[11.5px] leading-relaxed text-ink-soft">
         Clean screen hides every control. Move the mouse or press a key to bring them back for a few seconds. Press X to toggle it.
       </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Chip active={false} onClick={() => setClock(true)}>Clock only (T)</Chip>
+      </div>
       <p className="mt-4 text-[11px] uppercase tracking-[.2em] text-ink-soft">Mandala spin</p>
       <div className="mt-2 flex flex-wrap gap-2">
         {MANDALA_SPINS.map(m => (
@@ -315,6 +320,76 @@ function CycleSection() {
           </p>
         </>
       )}
+    </>
+  );
+}
+
+// ---------- saved setups ----------
+
+function SetupSection() {
+  const setups = useStore(s => s.setups);
+  const [name, setName] = useState('');
+  const save = () => {
+    if (!name.trim()) return;
+    saveSetup(name);
+    setName('');
+  };
+  return (
+    <>
+      <Heading>Saved setups</Heading>
+      {setups.length === 0 && (
+        <p className="mx-0.5 mb-2 text-[11.5px] leading-relaxed text-ink-soft">
+          Keep the time, breaks, sound, colours, mandala and words together under a name, like “Deep work” or “Evening riyaz”.
+        </p>
+      )}
+      <ul className="flex flex-col gap-2">
+        {setups.map(u => (
+          <li key={u.id} className="glass flex items-center gap-2 rounded-2xl py-1.5 pl-4 pr-1.5">
+            <span className="min-w-0 flex-1 truncate text-[13px]">
+              {u.name}
+              <span className="ml-2 text-[11.5px] text-ink-soft">{u.minutes ? `${u.minutes}m` : '∞'} · {u.source === 'songs' ? 'songs' : u.source}</span>
+            </span>
+            <button type="button" onClick={() => applySetup(u.id)} className="h-8 rounded-full bg-ink px-3.5 text-[12.5px] text-bg">Use</button>
+            <button type="button" aria-label={`Delete ${u.name}`} onClick={() => deleteSetup(u.id)} className="grid size-8 place-items-center rounded-full text-ink-soft hover:bg-glass-strong">
+              <CloseIcon className="size-3.5" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 flex gap-2">
+        <input
+          type="text" value={name} maxLength={24} placeholder="Name for the current settings"
+          aria-label="Setup name" autoComplete="off"
+          onChange={e => setName(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') save(); }}
+          className={fieldClass}
+        />
+        <button type="button" onClick={save} disabled={!name.trim()} className="glass h-10 shrink-0 rounded-full px-4 text-[13px] hover:bg-glass-strong disabled:opacity-40">Save</button>
+      </div>
+      <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+        Using a setup resets the timer (a long enough session so far is still logged) and starts nothing. Saving under an existing name replaces it.
+      </p>
+    </>
+  );
+}
+
+// ---------- notification ----------
+
+function NotifySection() {
+  const on = useStore(s => s.notify);
+  const perm = notifyPermission();
+  if (perm === 'unsupported') return null;
+  return (
+    <>
+      <Heading>When a session ends</Heading>
+      <div className="flex flex-wrap gap-2">
+        <Chip active={on} onClick={() => setNotify(!on)}>{on ? 'Notify me' : 'Notifications off'}</Chip>
+      </div>
+      <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+        {perm === 'denied'
+          ? 'The browser has blocked notifications for this site. Allow them in the site settings to hear about the end of a session while you are in another tab.'
+          : 'A quiet note when a session or break ends while this tab is hidden. The browser asks the first time you start a session.'}
+      </p>
     </>
   );
 }

@@ -170,3 +170,10 @@ export const HistoryIcon = (p: IconProps) => (
     <path d="M5 20V11M12 20V5M19 20v-6" />
   </Svg>
 );
+
+export const ClockIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 7.5V12l3 2" />
+  </Svg>
+);

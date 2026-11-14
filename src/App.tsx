@@ -11,8 +11,9 @@ import { Pickers } from './components/Pickers';
 import { AudioPane } from './components/AudioPane';
 import { NowPlaying } from './components/NowPlaying';
 import { CleanClock } from './components/CleanClock';
+import { ClockMode } from './components/ClockMode';
 import {
-  boot, cyclePalette, setClean, setHistory, setPrahar, setSheet, setSongsPanel, setSoundOn, setView, reset, skipBreak, step, toggleDrone, toggleSession, wake,
+  boot, cyclePalette, setClean, setClock, setHistory, setPrahar, setSheet, setSongsPanel, setSoundOn, setView, reset, skipBreak, step, toggleDrone, toggleSession, wake,
 } from './app/session';
 import { applyPaletteVars } from './lib/theme';
 import { getState, MANDALA_SPINS, useStore, type TimerState } from './lib/store';
@@ -99,6 +100,7 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const s = getState();
+      if (e.key === 'Escape' && s.clock) return setClock(false);
       if (e.key === 'Escape' && s.songsOpen) return setSongsPanel(false);
       if (e.key === 'Escape' && s.history) return setHistory(false);
       if (e.key === 'Escape' && s.sheet) return setSheet(false);
@@ -117,6 +119,7 @@ export default function App() {
       else if (k === 'l') setSheet(!s.sheet);
       else if (k === 'f') toggleFullscreen();
       else if (k === 'h') setHistory(!s.history);
+      else if (k === 't') setClock(!s.clock);
       else if (k === 'x') setClean(!s.clean);
     };
     addEventListener('keydown', onKey);
@@ -165,13 +168,14 @@ export default function App() {
           zen && 'opacity-0',
         )}
       >
-        <Kbd>Space</Kbd> start · <Kbd>R</Kbd> reset · <Kbd>C</Kbd> focus · <Kbd>M</Kbd> sound · <Kbd>P</Kbd> colors · <Kbd>N</Kbd> next · <Kbd>D</Kbd> tanpura · <Kbd>F</Kbd> fullscreen · <Kbd>H</Kbd> history · <Kbd>X</Kbd> clean
+        <Kbd>Space</Kbd> start · <Kbd>R</Kbd> reset · <Kbd>C</Kbd> focus · <Kbd>M</Kbd> sound · <Kbd>P</Kbd> colors · <Kbd>N</Kbd> next · <Kbd>D</Kbd> tanpura · <Kbd>F</Kbd> fullscreen · <Kbd>H</Kbd> history · <Kbd>X</Kbd> clean · <Kbd>T</Kbd> clock
       </footer>
 
       <SettingsPanel />
       <History />
       <Pickers />
       <AudioPane />
+      <ClockMode />
       <Toast />
     </div>
   );

@@ -1,10 +1,10 @@
 import type { Palette } from '../data/palettes';
-import { setHistory, setPicker, setSheet, setSource, setView } from '../app/session';
+import { setClock, setHistory, setPicker, setSheet, setSource, setView } from '../app/session';
 import { toggleFullscreen } from '../lib/fullscreen';
 import { useStore } from '../lib/store';
 import type { Source, View } from '../lib/store';
 import { cn } from '../lib/cn';
-import { CornerIcon, EyeOffIcon, FullscreenIcon, HistoryIcon, LotusIcon, NoteIcon, SettingsIcon, TimerIcon, WaveIcon } from './icons';
+import { ClockIcon, CornerIcon, EyeOffIcon, FullscreenIcon, HistoryIcon, LotusIcon, NoteIcon, SettingsIcon, TimerIcon, WaveIcon } from './icons';
 import { mandalaSvg } from './mandalas';
 
 const SOUNDS: { id: Source; label: string; Icon: (p: { className?: string }) => React.JSX.Element }[] = [
@@ -95,6 +95,10 @@ export function TopBar({ palette }: { palette: Palette }) {
 
         <button type="button" title="History (H)" aria-label="History" onClick={() => setHistory(true)} className={iconButton(false)}>
           <HistoryIcon className="size-[17px]" />
+        </button>
+
+        <button type="button" title="Clock only (T)" aria-label="Clock only" onClick={() => setClock(true)} className={cn(iconButton(false), 'max-[460px]:hidden')}>
+          <ClockIcon className="size-[17px]" />
         </button>
 
         <button type="button" title="Settings (L)" aria-label="Settings" onClick={() => setSheet(true)} className={iconButton(false)}>

@@ -11,6 +11,8 @@ import { annotateSession, logSession, refreshStats } from "./stats";
 import { blockLabel, blockMinutes, breakAfter, roundAfterBreak, roundAfterFocus } from "./cycleMath";
 import type { CycleSettings } from "./cycleMath";
 import { MIN_PARTIAL } from "./statsMath";
+import { askNotifyOnce, notifyEnd } from "./notify";
+import { endNote } from "./notifyMath";
 import { messageIndex, partialMinutes, phaseFor } from "./timerMath";
 import { keepAwake, scheduleZen, wake } from "./ui";
 import { nextLine, resetPhases } from "./words";
@@ -79,6 +81,7 @@ export function start() {
   if (s.timer === "running") return;
   cancelPreview();
   clearTimeout(autoTimer);
+  askNotifyOnce(); // only ever asks the first time
   if (s.timer === "idle" || s.timer === "done") {
     resetPhases();
     live = null;
@@ -181,6 +184,7 @@ function finish() {
     setState({ timer: "done", block: "focus", round, remaining: blockMinutes("focus", before.minutes, c) * 60000, status: "Break over · ready to focus", zen: false });
     keepAwake(false);
     nextLine(true);
+    notifyEnd(endNote(before.block, "focus", before.minutes, 0));
     scheduleAuto();
     return;
   }
@@ -222,6 +226,7 @@ function finish() {
   keepAwake(false);
   refreshStats();
   nextLine(true);
+  notifyEnd(endNote("focus", c.on ? breakAfter(roundAfterFocus(before.round), c.every) : "focus", min, n));
   if (c.on) scheduleAuto();
 }
 

@@ -67,6 +67,7 @@ Add `time: 'dawn' | 'day' | 'dusk' | 'night'` to have a track marked "suits now"
 | L | open / close the settings |
 | H | history page on / off |
 | X | clean screen on / off |
+| T | clock-only full screen (Esc or a tap leaves) |
 | F | fullscreen |
 | Esc | close history, settings or the songs panel |
 
@@ -79,6 +80,13 @@ Focus (25 min by default, set with the chips on the timer), then a short break (
 - **Look-back** after a focus session: one to three dots (Scattered / Steady / Deep) and an optional note, saved on the session in `drift:sessions` (`feel`, `note`). Skippable.
 - **Start next automatically** begins the next block by itself (it waits a little longer if the look-back is showing). *Skip break* (or B) goes straight back to focus.
 - Only focus time is logged; breaks are not.
+
+## Feeling like an app
+
+- **Lock screen and media keys:** while a session runs, the lock screen, headphone buttons and keyboard media keys show what is playing (the track or mood, your intention) with the app icon, a progress bar for the block, and play / pause / next / previous. Where a browser only shows media controls for `<audio>` elements, they may not appear for generated sound.
+- **End-of-session notification:** if the tab is hidden when a session or break ends, a quiet notification says what is next. The browser's permission question comes once, the first time a session starts; switch it off in Settings → When a session ends.
+- **Saved setups** (Settings → Saved setups): keep the focus length, cycle settings, sound type, mood or raag track, colours, mandala and words under a name ("Deep work", "Evening riyaz"). *Use* applies it and resets the timer; it does not start. Same name replaces. Stored in `drift:setups` and included in the export.
+- **Clock only** (T, or the clock button / Settings): a full-screen time of day over the scene, with the session time beneath while one runs.
 
 ## The mandala
 
