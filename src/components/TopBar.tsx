@@ -1,10 +1,10 @@
 import type { Palette } from '../data/palettes';
-import { setPicker, setSheet, setSource, setView } from '../app/session';
+import { setHistory, setPicker, setSheet, setSource, setView } from '../app/session';
 import { toggleFullscreen } from '../lib/fullscreen';
 import { useStore } from '../lib/store';
 import type { Source, View } from '../lib/store';
 import { cn } from '../lib/cn';
-import { CornerIcon, EyeOffIcon, FullscreenIcon, LotusIcon, NoteIcon, SettingsIcon, TimerIcon, WaveIcon } from './icons';
+import { CornerIcon, EyeOffIcon, FullscreenIcon, HistoryIcon, LotusIcon, NoteIcon, SettingsIcon, TimerIcon, WaveIcon } from './icons';
 import { mandalaSvg } from './mandalas';
 
 const SOUNDS: { id: Source; label: string; Icon: (p: { className?: string }) => React.JSX.Element }[] = [
@@ -92,6 +92,10 @@ export function TopBar({ palette }: { palette: Palette }) {
           onChange={v => setView(v)}
           items={views.map(v => ({ id: v.id, label: v.label, Icon: v.Icon }))}
         />
+
+        <button type="button" title="History (H)" aria-label="History" onClick={() => setHistory(true)} className={iconButton(false)}>
+          <HistoryIcon className="size-[17px]" />
+        </button>
 
         <button type="button" title="Settings (L)" aria-label="Settings" onClick={() => setSheet(true)} className={iconButton(false)}>
           <SettingsIcon className="size-[17px]" />

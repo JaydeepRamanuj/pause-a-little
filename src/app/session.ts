@@ -14,6 +14,7 @@ export * from "./timer";
 export * from "./words";
 export * from "./stats";
 export * from "./ui";
+export * from "./data";
 
 // ---------- start-up ----------
 

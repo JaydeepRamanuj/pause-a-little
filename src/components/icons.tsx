@@ -164,3 +164,9 @@ export const EyeOffIcon = (p: IconProps) => (
     <path d="M3 3l18 18M10.6 6.2A9.6 9.6 0 0 1 12 6c4.5 0 8 4 9 6-.4.9-1.1 2-2.2 3.1M6.6 7.6C4.6 9 3.3 10.8 3 12c1 2 4.5 6 9 6 1.4 0 2.7-.4 3.8-1" />
   </Svg>
 );
+
+export const HistoryIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 20V11M12 20V5M19 20v-6" />
+  </Svg>
+);

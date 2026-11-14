@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { canInstall, install, subscribeInstall } from '../lib/pwa';
 import { LANGS } from '../data/words';
 import {
-  hm, setCycle, setClean, setCleanClock, setDroneKeyIndex, setMandalaSpin, setDroneVolume, setSheet,
+  hm, setCycle, setGoal, setHistory, setClean, setCleanClock, setDroneKeyIndex, setMandalaSpin, setDroneVolume, setSheet,
   setShapeStyle, setSongVisual, setWords, toggleDrone, toggleLang,
 } from '../app/session';
 import { MANDALA_SPINS, useStore } from '../lib/store';
@@ -14,6 +14,7 @@ import { BREATHS } from '../app/breathMath';
 import { Heading, Slider, fieldClass } from './controls';
 import { CALM_VISUALS } from './calmArt';
 import { CloseIcon } from './icons';
+import { DataSection } from './History';
 
 const KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F'];
 
@@ -64,6 +65,7 @@ export function SettingsPanel() {
           <WordsSection />
           <FocusSection />
           <CycleSection />
+          <DataSection />
 
           <p className="mt-6 text-[11px] uppercase tracking-[.2em] text-ink-soft">
             {source === 'ambient' ? 'Ambient' : source === 'raag' ? 'Raag' : 'Calm songs'}
@@ -107,7 +109,7 @@ function ScreenSection() {
         <Chip active={cleanClock} onClick={() => setCleanClock(!cleanClock)}>Clock in clean screen</Chip>
       </div>
       <p className="mx-0.5 mt-3 text-[11.5px] leading-relaxed text-ink-soft">
-        Clean screen hides every control. Move the mouse or press a key to bring them back for a few seconds. Press H to toggle it.
+        Clean screen hides every control. Move the mouse or press a key to bring them back for a few seconds. Press X to toggle it.
       </p>
       <p className="mt-4 text-[11px] uppercase tracking-[.2em] text-ink-soft">Mandala spin</p>
       <div className="mt-2 flex flex-wrap gap-2">
@@ -189,6 +191,7 @@ function CalmSettings() {
 
 function FocusSection() {
   const stats = useStore(s => s.stats);
+  const goal = useStore(s => s.goal);
   return (
     <>
       <Heading>Your focus</Heading>
@@ -197,6 +200,15 @@ function FocusSection() {
         <StatCard value={hm(stats.week)} label="This week" />
         <StatCard value={String(stats.streak)} label="Day streak" />
       </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="mr-1 text-xs text-ink-soft">Daily goal</span>
+        {[0, 30, 60, 120, 180, 240].map(m => (
+          <Chip key={m} active={goal === m} onClick={() => setGoal(m)}>{m ? hm(m) : 'Off'}</Chip>
+        ))}
+      </div>
+      <button type="button" onClick={() => setHistory(true)} className="glass mt-3 h-10 rounded-full px-4 text-[13px] hover:bg-glass-strong">
+        Open history (H)
+      </button>
     </>
   );
 }

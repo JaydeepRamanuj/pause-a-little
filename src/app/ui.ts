@@ -98,6 +98,25 @@ export function setSheet(open: boolean) {
   }
 }
 
+/** The History page. Opening it closes the settings, and it keeps the controls showing. */
+export function setHistory(open: boolean) {
+  if (open) {
+    clearTimeout(zenTimer);
+    clearTimeout(hideTimer);
+    endPreview();
+    setState({ history: true, sheet: false, zen: false, revealed: getState().clean ? true : getState().revealed });
+  } else {
+    setState({ history: false });
+    if (getState().timer === "running") scheduleZen();
+  }
+}
+
+export function setGoal(min: number) {
+  const v = Math.max(0, Math.min(600, Math.round(min)));
+  persist("goal", v);
+  setState({ goal: v });
+}
+
 export function cyclePalette() {
   const i = ALL_PALETTE_IDS.indexOf(getState().palette);
   setPalette(ALL_PALETTE_IDS[(i + 1) % ALL_PALETTE_IDS.length]);

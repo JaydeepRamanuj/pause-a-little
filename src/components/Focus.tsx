@@ -4,6 +4,7 @@ import { PRAHAR, type Palette } from '../data/palettes';
 import { getState, useStore } from '../lib/store';
 import { cn } from '../lib/cn';
 import { fmt } from '../lib/util';
+import { goalFraction } from '../app/historyMath';
 import { answerLookBack, reset, setIntent, setMinutes, skipBreak, start, toggleSession } from '../app/session';
 import { BREATH_TEXT, breathAt, mandalaScale, type BreathId, type BreathKind } from '../app/breathMath';
 import { setMandalaBreath } from '../lib/mandalaFx';
@@ -30,6 +31,9 @@ export function Focus({ palette }: { palette: Palette }) {
   const cycle = useStore(s => s.cycle);
   const round = useStore(s => s.round);
   const lookBack = useStore(s => s.lookBack);
+  const goal = useStore(s => s.goal);
+  const todayMin = useStore(s => s.stats.today.min);
+  const goalFrac = goalFraction(todayMin, goal);
   const [breathKind, setBreathKind] = useState<BreathKind>('in');
 
   const running = timer === 'running';
@@ -61,6 +65,25 @@ export function Focus({ palette }: { palette: Palette }) {
         )}
 
         <div className="relative grid aspect-square w-[min(80vw,380px,max(220px,calc(100dvh_-_440px)))] place-items-center">
+          {goal > 0 && (
+            <svg
+              viewBox="0 0 100 100" role="img" aria-label={`${todayMin} of ${goal} minutes of today's goal`}
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[114%] w-[114%] -translate-x-1/2 -translate-y-1/2 -rotate-90"
+            >
+              <title>{`Today: ${todayMin} of ${goal} min`}</title>
+              <circle cx="50" cy="50" r="48.6" fill="none" strokeWidth={0.7} style={{ stroke: 'var(--track)', opacity: 0.55 }} />
+              <circle
+                cx="50" cy="50" r="48.6" fill="none" strokeWidth={0.9} strokeLinecap="round"
+                style={{
+                  stroke: 'var(--accent)',
+                  opacity: goalFrac >= 1 ? 0.85 : 0.5,
+                  strokeDasharray: 2 * Math.PI * 48.6,
+                  strokeDashoffset: 2 * Math.PI * 48.6 * (1 - goalFrac),
+                  transition: 'stroke-dashoffset 1.2s ease',
+                }}
+              />
+            </svg>
+          )}
           {guide && <Breathing id={guide} onKind={setBreathKind} />}
           <svg viewBox="0 0 100 100" aria-hidden="true" className="absolute inset-0 h-full w-full -rotate-90">
             <circle cx="50" cy="50" r="45" style={{ fill: 'var(--glass)', opacity: 0.55 }} />

@@ -106,6 +106,8 @@ export interface State {
   cleanClock: boolean; // show the small clock in clean screen
   revealed: boolean;   // controls are showing again after activity
   sheet: boolean;
+  history: boolean; // the History page
+  goal: number; // daily focus goal in minutes (0 = none)
   songsOpen: boolean; // the Songs panel
   shapeStyle: ShapeStyle; // the abstract art for Ambient
   songVisual: CalmVisualId; // the visual for Calm songs
@@ -180,6 +182,8 @@ export const initialState: State = {
   cleanClock: load('drift:cleanClock', true),
   revealed: false,
   sheet: false,
+  history: false,
+  goal: Math.max(0, Math.min(600, Math.round(Number(load('drift:goal', 120))) || 0)),
   songsOpen: false,
   shapeStyle: SHAPE_STYLES.includes(load('drift:shapeStyle', 'orbs') as ShapeStyle) ? load<ShapeStyle>('drift:shapeStyle', 'orbs') : 'orbs',
   controlsIdle: false,
@@ -219,6 +223,7 @@ export const persistKeys = {
   mandalaSpin: 'raag:spin',
   view: 'drift:view',
   clean: 'drift:clean',
+  goal: 'drift:goal',
   cleanClock: 'drift:cleanClock',
   soundOn: 'drift:sound',
   source: 'drift:source',

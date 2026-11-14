@@ -64,9 +64,11 @@ Add `time: 'dawn' | 'day' | 'dusk' | 'night'` to have a track marked "suits now"
 | P | next colour palette |
 | N | next mood (ambient) or next track (music) |
 | D | tanpura drone on / off |
-| L | open / close the Atmosphere sheet |
+| L | open / close the settings |
+| H | history page on / off |
+| X | clean screen on / off |
 | F | fullscreen |
-| Esc | close the sheet |
+| Esc | close history, settings or the songs panel |
 
 ## Focus and break cycles
 
@@ -81,6 +83,14 @@ Focus (25 min by default, set with the chips on the timer), then a short break (
 ## The mandala
 
 In Raag mode a mandala turns behind the clock. Outer rings turn slowly, inner ones faster, in alternating directions, with a soft glow at the centre. Settings → Screen → *Mandala spin* (Still / Slow / Flowing / Lively) sets the speed. It eases almost still when you pause, glows a little brighter in the last three minutes, blooms once when a session finishes, and swells gently with the music's beat. It respects reduced-motion settings.
+
+## History, goal and your data
+
+The chart icon in the top bar (or **H**) opens **History**: a year heatmap (darker = closer to your daily goal), last 7 days and this month, longest streak, minutes by hour of the day, your top moods and raag tracks, and every session with its intention, how it felt and your note. Clean screen moved from H to **X**.
+
+A thin **daily goal** ring surrounds the dial and fills as today's focus time adds up (Settings → Your focus: Off / 30m / 1h / 2h / 3h / 4h, default 2h).
+
+**Export everything** / **Import a backup** (in History and Settings) save and restore all settings, saved tracks and history as one JSON file (`pause-a-little-YYYY-MM-DD.json`). Importing replaces what is in this browser and reloads.
 
 ## Saved data
 

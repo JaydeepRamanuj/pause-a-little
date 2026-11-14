@@ -6,12 +6,13 @@ import { Focus } from './components/Focus';
 import { Words } from './components/Words';
 import { YouTubeCard } from './components/YouTubeCard';
 import { SettingsPanel } from './components/SettingsPanel';
+import { History } from './components/History';
 import { Pickers } from './components/Pickers';
 import { AudioPane } from './components/AudioPane';
 import { NowPlaying } from './components/NowPlaying';
 import { CleanClock } from './components/CleanClock';
 import {
-  boot, cyclePalette, setClean, setPrahar, setSheet, setSongsPanel, setSoundOn, setView, reset, skipBreak, step, toggleDrone, toggleSession, wake,
+  boot, cyclePalette, setClean, setHistory, setPrahar, setSheet, setSongsPanel, setSoundOn, setView, reset, skipBreak, step, toggleDrone, toggleSession, wake,
 } from './app/session';
 import { applyPaletteVars } from './lib/theme';
 import { getState, MANDALA_SPINS, useStore, type TimerState } from './lib/store';
@@ -61,6 +62,7 @@ export default function App() {
   const intent = useStore(s => s.intent);
   const view = useStore(s => s.view);
   const sheet = useStore(s => s.sheet);
+  const history = useStore(s => s.history);
   const clean = useStore(s => s.clean);
   const revealed = useStore(s => s.revealed);
   const songsOpen = useStore(s => s.songsOpen);
@@ -69,7 +71,7 @@ export default function App() {
   const spinId = useStore(s => s.mandalaSpin);
   const bloom = useDoneCount(timer);
   const beatOn = useStore(s => s.source === 'songs' && s.timer === 'running');
-  const hidden = clean && !revealed && !sheet && !songsOpen;
+  const hidden = clean && !revealed && !sheet && !history && !songsOpen;
 
   const source = useStore(s => s.source);
   // on a break the palette turns softer
@@ -98,6 +100,7 @@ export default function App() {
     const onKey = (e: KeyboardEvent) => {
       const s = getState();
       if (e.key === 'Escape' && s.songsOpen) return setSongsPanel(false);
+      if (e.key === 'Escape' && s.history) return setHistory(false);
       if (e.key === 'Escape' && s.sheet) return setSheet(false);
       const target = e.target;
       if (target instanceof Element && target.matches('textarea, input:not([type=range])')) return;
@@ -113,7 +116,8 @@ export default function App() {
       else if (k === 'd') toggleDrone();
       else if (k === 'l') setSheet(!s.sheet);
       else if (k === 'f') toggleFullscreen();
-      else if (k === 'h') setClean(!s.clean);
+      else if (k === 'h') setHistory(!s.history);
+      else if (k === 'x') setClean(!s.clean);
     };
     addEventListener('keydown', onKey);
     WAKE_EVENTS.forEach(ev => addEventListener(ev, onActivity, { passive: true }));
@@ -157,14 +161,15 @@ export default function App() {
       <footer
         className={cn(
           'hint ui pointer-events-none fixed inset-x-0 top-[66px] z-[3] text-center text-[11.5px] tracking-[.06em] text-ink-soft transition-opacity duration-[1.4s]',
-          (view !== 'focus' || sheet) && 'hidden',
+          (view !== 'focus' || sheet || history) && 'hidden',
           zen && 'opacity-0',
         )}
       >
-        <Kbd>Space</Kbd> start · <Kbd>R</Kbd> reset · <Kbd>C</Kbd> focus · <Kbd>M</Kbd> sound · <Kbd>P</Kbd> colors · <Kbd>N</Kbd> next · <Kbd>D</Kbd> tanpura · <Kbd>F</Kbd> fullscreen · <Kbd>H</Kbd> clean
+        <Kbd>Space</Kbd> start · <Kbd>R</Kbd> reset · <Kbd>C</Kbd> focus · <Kbd>M</Kbd> sound · <Kbd>P</Kbd> colors · <Kbd>N</Kbd> next · <Kbd>D</Kbd> tanpura · <Kbd>F</Kbd> fullscreen · <Kbd>H</Kbd> history · <Kbd>X</Kbd> clean
       </footer>
 
       <SettingsPanel />
+      <History />
       <Pickers />
       <AudioPane />
       <Toast />

@@ -2,6 +2,28 @@
 
 The latest handoff is at the top. Each phase session adds its own section above the previous one.
 
+## Handoff 4 → Phase 5
+
+**Built (Phase 4, history and your data):**
+
+- `src/app/historyMath.ts` (new, pure): `heatmap` (53 weeks × 7, Monday first), `heatLevel`, `lastDays`, `thisMonth`, `longestStreak`, `byHour`, `topItems`, `totalMin`, `goalFraction`.
+  `src/app/dataIO.ts` (new, pure): `buildExport`, `parseImport`, `applyImport` over any Storage-like object (only `drift:*` / `raag:*` keys; file = `{app:'pause-a-little', version:1, exportedAt, data}`).
+  `src/app/data.ts`: `exportData()` (download) and `importData(file)` (replace + reload); re-exported from `session.ts`. 8 new tests in `__tests__/history.test.ts` (35 total).
+- `src/components/History.tsx` (new): the History dialog (stat cards, heatmap with hover text, by-hour bars, top moods / raags, session list of the latest 200 with intention, mode, feel, note) and the exported `DataSection` (Export / Import), also used in Settings.
+- `store.ts`: `history` (open flag), `goal` (minutes, persisted `drift:goal`, default 120, 0 = off). `ui.ts`: `setHistory`, `setGoal`. `Focus.tsx`: thin goal ring around the dial (114 % svg, uses `stats.today.min`). `TopBar.tsx`: history button. `App.tsx`: renders `<History/>`, `H` toggles history, Esc closes it. `SettingsPanel.tsx`: goal chips, "Open history", `DataSection`. README updated.
+
+**Decisions:** the plan's `H` for history collided with clean screen, so **clean screen moved to `X`** (README, hint line and settings text updated). Export covers all localStorage keys of the app, so Phase 5/6 settings keys named `drift:`/`raag:` are included automatically. Import asks `confirm()` first. The ring counts logged sessions only (not the running one).
+
+**Verified:** `npm run build`, `npm test` (35). Playwright at 1280×800 and 390×844 with 300 seeded days: History renders, heatmap scrolls to the latest weeks on phone, export downloads a file containing `drift:sessions`, Esc closes; goal ring shows 50/120 min. No page errors. Import (file chooser + reload) was only unit-tested, not driven in the browser.
+
+**Known issues / not done:** history list is capped at 200 rows with no paging or filtering; no per-day drill-down on tap (hover/title only); the goal ring touches the key-hint line on short viewports.
+
+**Gotchas:** two `DataSection`s exist (Settings and History) so the label "Export everything" is not unique for tests. For Phase 5 saved setups include `cycle` and `minutes` (and `goal` is global, not per setup).
+
+**Next:** Phase 5 in docs/PLAN.md.
+
+---
+
 ## Handoff 3 → Phase 4
 
 **Built (Phase 3, focus and break cycles, plus breathing):**
