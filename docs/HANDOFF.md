@@ -2,6 +2,29 @@
 
 The latest handoff is at the top. Each phase session adds its own section above the previous one.
 
+## Handoff 5 → Phase 6
+
+**Built (Phase 5, feeling like a real app):**
+
+- `src/app/media.ts` (new): Media Session. `setupMedia()` (called from `boot()`) subscribes to the store and updates metadata (title = track or mood name, album = intention / "Break", artist, icon artwork), `playbackState`, and a position bar for the block; handlers play, pause, stop, next, previous. Pure text in `mediaMath.ts`. `sound.ts`: `soundTitle()`.
+- `src/app/notify.ts` (new) + `notifyMath.ts`: `askNotifyOnce()` (called in `start()`, asks only if permission is `default` and `drift:notifyAsked` is unset), `notifyEnd(note)` (only when the tab is hidden; `new Notification`, falls back to the service worker's `showNotification`), `setNotify`. `timer.ts` `finish()` calls it for both focus and break ends.
+- `src/app/setups.ts` (new) + `setupMath.ts`: `saveSetup(name)`, `deleteSetup`, `applySetup`. A setup = minutes, whole `cycle`, source, mood, raag track key, palette, mandala, words (langs, calm, poems). Max 12, same name (case-insensitive) replaces. `sound.ts`: `applySound(source, mood, track)` changes the sound type without starting.
+- Clock-only mode: `components/ClockMode.tsx`, `ui.ts` `setClock`, store `clock`; key **T**, top-bar button (hidden under 460 px wide), Settings → Screen chip; requests browser fullscreen, Esc / tap / leaving fullscreen closes it.
+- `store.ts`: `setups` (`drift:setups`), `notify` (`drift:notify`), `notifyAsked`, `clock`; `subscribe` is now exported. `SettingsPanel.tsx`: `SetupSection`, `NotifySection`, clock chip. `icons.tsx`: `ClockIcon`. README: "Feeling like an app", `T` in the keyboard table.
+- 5 new tests in `__tests__/phase5.test.ts` (40 total).
+
+**Decisions:** setups are applied, not started (the user decides when); applying resets the timer through the existing `reset()`. Setups live in Settings only (no room for chips on the Focus screen). The permission question is asked on the first session start, never again; the Settings switch also asks when turned on if still undecided. The clock overlay is a translucent layer over the live scene instead of a separate screen. Setups are stored under a `drift:` key, so they are in the Phase 4 export automatically.
+
+**Verified:** `npm run build`, `npm test` (40). Playwright at 1280×800 and 390×844 (fake clock, stubbed Notification): saved a setup, applied it, clock mode opens and Esc closes, session start sets media metadata (`Drift | 25 min focus | playing`), a 25-minute fast-forward with a hidden tab produced "Time to pause a little / 25 minutes of focus. A short break is waiting."; no page errors.
+
+**Known issues / not done:** real lock screen / headphone controls were not tried on a device (Chrome often shows media controls only for `<audio>`/`<video>` elements, and Web Audio ambient may not trigger them; YouTube and file tracks are likely better). The real permission prompt and a service-worker notification on a phone were not tested. An installed PWA's notification click does not refocus the app (no `notificationclick` handler in the generated service worker). Setups cannot store session-added (uploaded) audio files. The setup list has no rename or reorder. In the test the Clock dialog still counted 1 for a moment after Esc on desktop (fade-out under the fake clock).
+
+**Gotchas:** `applySetup` calls `reset()` first and `setMinutes()` last (it also resets); keep that order or `remaining` will be stale. `notifyEnd` checks `document.visibilityState`, so tests must stub it. Playwright `Notification` has to be replaced before load with `addInitScript`. For Phase 6: the ambient layers should hook into `sound.ts` `soundStart` / `soundStop` (and `breakSoundStart` for breaks); a sleep timer must work with the timer idle, so it cannot rely on `finish()`. New persisted keys should start with `drift:` or `raag:` to be exported.
+
+**Next:** Phase 6 in docs/PLAN.md.
+
+---
+
 ## Handoff 4 → Phase 5
 
 **Built (Phase 4, history and your data):**
