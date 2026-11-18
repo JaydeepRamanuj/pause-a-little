@@ -6,6 +6,8 @@ import type { Palette } from '../data/palettes';
 import { hex, rand, rgba } from '../lib/util';
 import type { RGB } from '../lib/util';
 import { mandalaSvg, type MandalaId } from './mandalas';
+import { attachMandala, setMandalaBeat } from '../lib/mandalaFx';
+import { cn } from '../lib/cn';
 
 // The living background: slow colour blobs, plus (for the raag palettes) a diya glow,
 // and stars and a shooting star at night.
@@ -37,14 +39,15 @@ const cloneTarget = (t: Target): Target => ({
 interface Star { x: number; y: number; r: number; a: number; tw: number; ph: number }
 interface Shoot { x: number; y: number; vx: number; vy: number; life: number; dur: number }
 
-export function Scene({ palette, mandala, mandalaOn, beatOn, shapesOn, shapeStyle, calmOn, calmVisual }: {
-  palette: Palette; mandala: MandalaId; mandalaOn: boolean; beatOn: boolean; shapesOn: boolean; shapeStyle: ShapeStyle;
+export function Scene({ palette, mandala, mandalaOn, mandalaRate, mandalaLift, mandalaBloom, mandalaBeat, beatOn, shapesOn, shapeStyle, calmOn, calmVisual }: {
+  palette: Palette; mandala: MandalaId; mandalaOn: boolean; mandalaRate: number; mandalaLift: boolean; mandalaBloom: number; mandalaBeat: boolean; beatOn: boolean; shapesOn: boolean; shapeStyle: ShapeStyle;
   calmOn: boolean; calmVisual: CalmVisualId;
 }) {
   const bgRef = useRef<HTMLCanvasElement>(null);
   const fxRef = useRef<HTMLCanvasElement>(null);
   const target = useRef<Target>(toTarget(palette));
   const beatRef = useRef(beatOn);
+  const mBeatRef = useRef(mandalaBeat);
   const shapesRef = useRef(shapesOn);
   const styleRef = useRef(shapeStyle);
   const calmRef = useRef(calmOn);
@@ -54,6 +57,10 @@ export function Scene({ palette, mandala, mandalaOn, beatOn, shapesOn, shapeStyl
   useEffect(() => {
     target.current = toTarget(palette);
   }, [palette]);
+
+  useEffect(() => {
+    mBeatRef.current = mandalaBeat;
+  }, [mandalaBeat]);
 
   useEffect(() => {
     beatRef.current = beatOn;
@@ -262,9 +269,11 @@ export function Scene({ palette, mandala, mandalaOn, beatOn, shapesOn, shapeStyl
       lerp(dt);
       level += (musicLevel() - level) * (1 - Math.exp(-dt * 3));
       // the music is read once a frame, for the background and the Calm songs visuals
-      const analysis = beatRef.current || calmRef.current ? analyseFrame(dt, now) : null;
-      const beat = analysis?.beat ?? 0;
+      const analysis = beatRef.current || calmRef.current || mBeatRef.current ? analyseFrame(dt, now) : null;
+      // the canvas keeps its old rule: it swells only for Calm songs; the mandala swells in Raag too
+      const beat = beatRef.current || calmRef.current ? analysis?.beat ?? 0 : 0;
       drawBg(beat);
+      setMandalaBeat(mBeatRef.current ? analysis?.beat ?? 0 : 0);
       drawFx(dt);
       drawShapes(clock, beat, dt);
       calmArt.current.draw(
@@ -285,7 +294,7 @@ export function Scene({ palette, mandala, mandalaOn, beatOn, shapesOn, shapeStyl
     <>
       <canvas ref={bgRef} aria-hidden="true" className="fixed inset-0 z-0 block h-full w-full" />
       <div aria-hidden="true" className="grain pointer-events-none fixed -inset-1/2 z-[1] opacity-[.09] mix-blend-overlay" />
-      <Mandala on={mandalaOn} dark={palette.dark} id={mandala} />
+      <Mandala on={mandalaOn} dark={palette.dark} id={mandala} rate={mandalaRate} lift={mandalaLift} bloom={mandalaBloom} />
       <canvas ref={fxRef} aria-hidden="true" className="pointer-events-none fixed inset-0 z-[2] block h-full w-full" />
     </>
   );
@@ -293,17 +302,70 @@ export function Scene({ palette, mandala, mandalaOn, beatOn, shapesOn, shapeStyl
 
 // ---------- the mandala (over any colour, when switched on) ----------
 
-function Mandala({ on, dark, id }: { on: boolean; dark: boolean; id: MandalaId }) {
+function Mandala({ on, dark, id, rate, lift, bloom }: {
+  on: boolean; dark: boolean; id: MandalaId;
+  rate: number;  // 0..1+: how fast the rings turn right now (pause eases this to near zero)
+  lift: boolean; // the last minutes of a session: a little brighter
+  bloom: number; // changes each time a session finishes, to play one bloom
+}) {
+  const root = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const cur = useRef(rate);
+  const want = useRef(rate);
+  const anims = useRef<Animation[]>([]);
+  const raf = useRef(0);
+
+  // collect the turning rings again whenever the design changes
+  useEffect(() => {
+    const grab = () => {
+      anims.current = (root.current?.getAnimations({ subtree: true }) ?? [])
+        .filter(a => (a as CSSAnimation).animationName === 'spin');
+      anims.current.forEach(a => { a.playbackRate = cur.current; });
+    };
+    grab();
+    attachMandala(bodyRef.current);
+    return () => attachMandala(null);
+  }, [id, bloom]);
+
+  // ease the playback rate toward the wanted one, so pausing glides to a stop
+  useEffect(() => {
+    want.current = rate;
+    cancelAnimationFrame(raf.current);
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      cur.current += (want.current - cur.current) * (1 - Math.exp(-dt * 1.6));
+      if (Math.abs(want.current - cur.current) < 0.002) cur.current = want.current;
+      anims.current.forEach(a => { a.playbackRate = cur.current; });
+      if (cur.current !== want.current) raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf.current);
+  }, [rate]);
+
+  const base = dark ? 0.12 : 0.14;
   return (
     <div
+      ref={bodyRef}
       aria-hidden="true"
       className="pointer-events-none fixed left-1/2 top-[46%] z-[1] aspect-square w-[min(96vmin,820px)] -translate-x-1/2 -translate-y-1/2"
       style={{
         color: 'var(--accent)',
-        opacity: on ? (dark ? 0.12 : 0.14) : 0,
+        opacity: on ? (lift ? base * 1.45 : base) : 0,
+        // breath (Phase 3) and the beat swell scale the whole mandala
+        scale: 'calc(var(--m-breath, 1) * (1 + 0.035 * var(--m-beat, 0)))',
         transition: 'color 6s var(--ease-soft), opacity 6s var(--ease-soft)',
       }}
-      dangerouslySetInnerHTML={{ __html: mandalaSvg(id) }}
-    />
+    >
+      <div key={bloom} className={cn('h-full w-full', bloom > 0 && 'm-bloom')}>
+        {/* a soft glow behind the centre */}
+        <div
+          className="absolute left-1/2 top-1/2 h-[46%] w-[46%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(circle, currentColor 0%, transparent 70%)', opacity: 0.9 }}
+        />
+        <div ref={root} className="m-body relative h-full w-full" dangerouslySetInnerHTML={{ __html: mandalaSvg(id) }} />
+      </div>
+    </div>
   );
 }

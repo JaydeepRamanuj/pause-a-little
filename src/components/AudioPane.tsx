@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { MOODS } from '../data/moods';
+import { raagInfoFor } from '../data/raags';
 import { SONGS_COLLECTIONS, TIME_LABEL, type Collection } from '../data/tracks';
 import type { Prahar } from '../data/palettes';
 import {
@@ -222,7 +223,7 @@ function RaagList() {
             <Row
               key={t.key}
               title={t.title}
-              sub={[t.kind === 'yt' ? 'YouTube' : t.origin === 'session' ? 'This visit' : 'Your audio', t.time === prahar ? 'suits now' : ''].filter(Boolean).join(' · ')}
+              sub={[t.kind === 'yt' ? 'YouTube' : t.origin === 'session' ? 'This visit' : 'Your audio', raagInfoFor(t.title)?.thaat ? `${raagInfoFor(t.title)!.thaat} thaat` : '', raagInfoFor(t.title)?.mood ?? '', t.time === prahar ? 'suits now' : ''].filter(Boolean).join(' · ')}
               active={musicKey === t.key}
               playing={timer === 'running' && musicKey === t.key}
               onClick={() => selectTrack(t.key)}

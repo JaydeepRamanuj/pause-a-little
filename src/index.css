@@ -148,17 +148,29 @@
   }
 }
 
-/* The mandala. Each ring turns slowly, in opposite directions. About 2.5 and 3 minutes a turn. */
-.m-spin-a {
+/* The mandala. Every ring sets its own turn time (--d) and direction (--dir): outer rings
+   slow, inner quicker. The speed setting, pausing and the session all change the playback
+   rate of these animations (see Mandala in Scene.tsx), so they ease instead of jumping. */
+.m-ring {
   transform-box: view-box;
   transform-origin: 50% 50%;
-  animation: spin 150s linear infinite;
+  animation: spin var(--d, 150s) linear infinite var(--dir, normal);
 }
 
-.m-spin-b {
-  transform-box: view-box;
-  transform-origin: 50% 50%;
-  animation: spin 180s linear infinite reverse;
+/* The whole mandala also turns, very slowly, on top of its rings. */
+.m-body {
+  animation: spin 600s linear infinite;
+}
+
+/* One slow bloom when a session finishes. */
+.m-bloom {
+  animation: m-bloom 7s ease-out 1;
+}
+
+@keyframes m-bloom {
+  0% { transform: scale(1); filter: brightness(1); }
+  35% { transform: scale(1.12); filter: brightness(1.8); }
+  100% { transform: scale(1); filter: brightness(1); }
 }
 
 /* Petals breathe in and out, each a little out of step with the next. */
@@ -210,8 +222,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .m-spin-a,
-  .m-spin-b,
+  .m-ring,
+  .m-body,
+  .m-bloom,
   .m-breathe,
   .m-shimmer,
   .m-pulse,

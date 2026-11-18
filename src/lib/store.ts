@@ -1,17 +1,27 @@
 import { useSyncExternalStore } from 'react';
 import type { Prahar, RaagClockMode } from '../data/palettes';
 import { ALL_PALETTE_IDS, praharNow } from '../data/palettes';
+import { normalizeLayers, type LayerLevels } from '../app/layersMath';
 import type { MandalaId } from '../components/mandalas';
 import type { Lang } from '../data/words';
 import { LANGS } from '../data/words';
 import { MANDALA_IDS } from '../components/mandalas';
 import { CALM_VISUALS, type CalmVisualId } from '../components/calmArt';
 import { load, save } from './storage';
+import { normalizeSetups, type Setup } from '../app/setupMath';
+import { normalizeCycle, type Block, type CycleSettings } from '../app/cycleMath';
 
 export type Source = 'ambient' | 'raag' | 'songs';
 export type ShapeStyle = 'orbs' | 'arcs' | 'waves' | 'prisms';
 const SHAPE_STYLES: ShapeStyle[] = ['orbs', 'arcs', 'waves', 'prisms'];
 export type MusicMode = 'order' | 'shuffle' | 'one';
+export type MandalaSpin = 'still' | 'slow' | 'flowing' | 'lively';
+export const MANDALA_SPINS: { id: MandalaSpin; label: string; rate: number }[] = [
+  { id: 'still', label: 'Still', rate: 0 },
+  { id: 'slow', label: 'Slow', rate: 0.5 },
+  { id: 'flowing', label: 'Flowing', rate: 1 },
+  { id: 'lively', label: 'Lively', rate: 2.2 },
+];
 export type TimerState = 'idle' | 'running' | 'paused' | 'done';
 
 export interface SavedTrack {
@@ -60,6 +70,7 @@ export interface State {
   palette: string;
   raagMode: RaagClockMode;
   mandala: MandalaId | 'none';
+  mandalaSpin: MandalaSpin; // how fast the mandala rings turn
   picker: Picker; // the colours or mandala card, from the top bar
   view: View;
   prahar: Prahar;
@@ -83,6 +94,10 @@ export interface State {
   timer: TimerState;
   remaining: number;
   intent: string;
+  cycle: CycleSettings; // focus and break cycles
+  block: Block; // what the timer is counting now
+  round: number; // focus sessions finished since the last long break
+  lookBack: number | null; // start time of the session waiting for a look-back
   // words
   words: Words;
   line: Line | null;
@@ -93,6 +108,14 @@ export interface State {
   cleanClock: boolean; // show the small clock in clean screen
   revealed: boolean;   // controls are showing again after activity
   sheet: boolean;
+  history: boolean; // the History page
+  clock: boolean; // clock-only full screen
+  setups: Setup[]; // saved setups
+  layers: LayerLevels; // the ambient layer mixer volumes
+  sleepEnd: number | null; // when the sleep timer ends (not saved)
+  notify: boolean; // tell me when a session ends while the tab is hidden
+  endMusic: boolean; // fade the music out when the time is up (on by default)
+  goal: number; // daily focus goal in minutes (0 = none)
   songsOpen: boolean; // the Songs panel
   shapeStyle: ShapeStyle; // the abstract art for Ambient
   songVisual: CalmVisualId; // the visual for Calm songs
@@ -109,7 +132,7 @@ const savedWords = load<Partial<Words> & { lang?: Lang; mode?: 'timer' | 'corner
 // older saves kept one language; now there can be several
 const savedLangs = (savedWords.langs ?? (savedWords.lang ? [savedWords.lang] : []))
   .filter((l): l is Lang => LANGS.some(x => x.id === l));
-const minutes = load('drift:minutes', 20);
+const minutes = load('drift:minutes', 25);
 // the sound types: Ambient, Raag (the playlist) and Calm songs. Older saves called Raag 'music'.
 const savedSourceRaw = load<string>('drift:source', 'ambient');
 const savedSource: Source = savedSourceRaw === 'music'
@@ -126,6 +149,7 @@ export const initialState: State = {
   mandala: load<MandalaId | 'none'>('raag:mandala', 'lotus') === 'none' || MANDALA_IDS.includes(load('raag:mandala', 'lotus') as MandalaId)
     ? load<MandalaId | 'none'>('raag:mandala', 'lotus')
     : 'lotus',
+  mandalaSpin: MANDALA_SPINS.some(m => m.id === load('raag:spin', 'flowing')) ? load<MandalaSpin>('raag:spin', 'flowing') : 'flowing',
   picker: null,
   view: load<View>('drift:view', savedWords.mode === 'corner' ? 'motivation' : 'focus'),
   prahar: praharNow(),
@@ -147,6 +171,10 @@ export const initialState: State = {
   timer: 'idle',
   remaining: minutes * 60000,
   intent: load('drift:intent', ''),
+  cycle: normalizeCycle(load<Partial<CycleSettings>>('drift:cycle', {})),
+  block: 'focus',
+  round: 0,
+  lookBack: null,
   words: {
     langs: savedLangs.length ? savedLangs : ['en'],
     calm: savedWords.calm ?? true,
@@ -162,6 +190,14 @@ export const initialState: State = {
   cleanClock: load('drift:cleanClock', true),
   revealed: false,
   sheet: false,
+  history: false,
+  clock: false,
+  setups: normalizeSetups(load<unknown>('drift:setups', [])),
+  layers: normalizeLayers(load<unknown>('drift:layers', {})),
+  sleepEnd: null,
+  notify: load('drift:notify', true),
+  endMusic: load('drift:endMusic', true),
+  goal: Math.max(0, Math.min(600, Math.round(Number(load('drift:goal', 120))) || 0)),
   songsOpen: false,
   shapeStyle: SHAPE_STYLES.includes(load('drift:shapeStyle', 'orbs') as ShapeStyle) ? load<ShapeStyle>('drift:shapeStyle', 'orbs') : 'orbs',
   controlsIdle: false,
@@ -181,7 +217,7 @@ export function setState(patch: Partial<State>) {
   listeners.forEach(l => l());
 }
 
-function subscribe(fn: () => void) {
+export function subscribe(fn: () => void) {
   listeners.add(fn);
   return () => {
     listeners.delete(fn);
@@ -198,8 +234,10 @@ export const persistKeys = {
   palette: 'drift:palette',
   raagMode: 'raag:theme',
   mandala: 'raag:mandala',
+  mandalaSpin: 'raag:spin',
   view: 'drift:view',
   clean: 'drift:clean',
+  goal: 'drift:goal',
   cleanClock: 'drift:cleanClock',
   soundOn: 'drift:sound',
   source: 'drift:source',
@@ -216,6 +254,12 @@ export const persistKeys = {
   saved: 'raag:yt',
   minutes: 'drift:minutes',
   intent: 'drift:intent',
+  cycle: 'drift:cycle',
+  setups: 'drift:setups',
+  layers: 'drift:layers',
+  notify: 'drift:notify',
+  endMusic: 'drift:endMusic',
+  notifyAsked: 'drift:notifyAsked',
   words: 'drift:words',
 } as const;
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { allTracks, setSongsPanel, setVolume, step, toggleSession } from '../app/session';
+import { raagInfoFor, raagLine } from '../data/raags';
 import { moodById } from '../data/moods';
 import { useStore } from '../lib/store';
 import { cn } from '../lib/cn';
@@ -41,7 +42,8 @@ export function NowPlaying() {
     sub = `${track.collection} · ${track.title}`;
   } else if (track) {
     title = track.title;
-    sub = 'Your Raag playlist';
+    const info = raagInfoFor(track.title);
+    sub = info ? raagLine(info) : 'Your Raag playlist';
   } else {
     title = source === 'songs' ? 'Calm songs' : 'Raag';
     sub = source === 'songs' ? 'Open the list to pick one' : 'Open the list to pick a track';

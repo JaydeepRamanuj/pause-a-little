@@ -1,18 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { canInstall, install, subscribeInstall } from '../lib/pwa';
 import { LANGS } from '../data/words';
 import {
-  hm, setClean, setCleanClock, setDroneKeyIndex, setDroneVolume, setSheet,
+  allTracks, applySetup, cancelSleep, deleteSetup, setLayer, startSleep, hm, notifyPermission, saveSetup, setClock, setCycle, setNotify, setEndMusic, setGoal, setHistory, setClean, setCleanClock, setDroneKeyIndex, setMandalaSpin, setDroneVolume, setSheet,
   setShapeStyle, setSongVisual, setWords, toggleDrone, toggleLang,
 } from '../app/session';
-import { useStore } from '../lib/store';
+import { MANDALA_SPINS, useStore } from '../lib/store';
 import type { ShapeStyle } from '../lib/store';
 import { cn } from '../lib/cn';
 import { Chip } from './Focus';
+import { BREATHS } from '../app/breathMath';
+import { LAYER_IDS, LAYER_NAMES, SLEEP_MINUTES, sleepLeft } from '../app/layersMath';
+import { raagInfoFor } from '../data/raags';
 import { Heading, Slider, fieldClass } from './controls';
 import { CALM_VISUALS } from './calmArt';
 import { CloseIcon } from './icons';
+import { DataSection } from './History';
 
 const KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F'];
 
@@ -62,6 +66,12 @@ export function SettingsPanel() {
           <AppSection />
           <WordsSection />
           <FocusSection />
+          <CycleSection />
+          <LayerSection />
+          <SleepSection />
+          <SetupSection />
+          <NotifySection />
+          <DataSection />
 
           <p className="mt-6 text-[11px] uppercase tracking-[.2em] text-ink-soft">
             {source === 'ambient' ? 'Ambient' : source === 'raag' ? 'Raag' : 'Calm songs'}
@@ -96,6 +106,7 @@ function AppSection() {
 function ScreenSection() {
   const clean = useStore(s => s.clean);
   const cleanClock = useStore(s => s.cleanClock);
+  const spinSpeed = useStore(s => s.mandalaSpin);
   return (
     <>
       <Heading>Screen</Heading>
@@ -104,7 +115,62 @@ function ScreenSection() {
         <Chip active={cleanClock} onClick={() => setCleanClock(!cleanClock)}>Clock in clean screen</Chip>
       </div>
       <p className="mx-0.5 mt-3 text-[11.5px] leading-relaxed text-ink-soft">
-        Clean screen hides every control. Move the mouse or press a key to bring them back for a few seconds. Press H to toggle it.
+        Clean screen hides every control. Move the mouse or press a key to bring them back for a few seconds. Press X to toggle it.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Chip active={false} onClick={() => setClock(true)}>Clock only (T)</Chip>
+      </div>
+      <p className="mt-4 text-[11px] uppercase tracking-[.2em] text-ink-soft">Mandala spin</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {MANDALA_SPINS.map(m => (
+          <Chip key={m.id} active={spinSpeed === m.id} onClick={() => setMandalaSpin(m.id)}>{m.label}</Chip>
+        ))}
+      </div>
+      <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+        How fast the rings of the Raag mandala turn. It eases still when you pause.
+      </p>
+    </>
+  );
+}
+
+// ---------- layer mixer and sleep timer ----------
+
+function LayerSection() {
+  const levels = useStore(s => s.layers);
+  return (
+    <>
+      <Heading>Sound layers</Heading>
+      <p className="mx-0.5 mb-2 text-[11.5px] leading-relaxed text-ink-soft">
+        Mix a little rain, ocean, bells, pads or tanpura under whatever plays. Each has its own volume; leave it at zero to switch it off.
+      </p>
+      <div className="flex flex-col gap-1">
+        {LAYER_IDS.map(id => (
+          <Slider key={id} label={LAYER_NAMES[id]} value={levels[id]} onChange={v => setLayer(id, v)} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function SleepSection() {
+  const end = useStore(s => s.sleepEnd);
+  const [, tick] = useState(0); // re-render every second while the timer runs
+  useEffect(() => {
+    if (!end) return;
+    const id = window.setInterval(() => tick(n => n + 1), 1000);
+    return () => clearInterval(id);
+  }, [end]);
+  return (
+    <>
+      <Heading>Sleep timer</Heading>
+      <div className="flex flex-wrap items-center gap-2">
+        {SLEEP_MINUTES.map(m => (
+          <Chip key={m} active={false} onClick={() => startSleep(m)}>{m} min</Chip>
+        ))}
+        {end && <Chip active onClick={cancelSleep}>{sleepLeft(end, Date.now())} · Cancel</Chip>}
+      </div>
+      <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+        Plays your sound and fades it out slowly at the end. It works without a focus session.
       </p>
     </>
   );
@@ -117,8 +183,23 @@ function RaagSettings() {
   const drone = useStore(s => s.drone);
   const droneKey = useStore(s => s.droneKey);
   const droneVol = useStore(s => s.droneVol);
+  const track = useStore(s => allTracks(s).find(t => t.key === s.musicKey) ?? null);
+  const info = track ? raagInfoFor(track.title) : null;
   return (
     <>
+      {info && (
+        <>
+          <Heading>About this raag</Heading>
+          <div className="glass rounded-2xl px-4 py-3 text-[13px] leading-relaxed">
+            <b className="font-normal">Raag {info.name}</b>
+            <dl className="mt-1.5 grid grid-cols-[5.5rem_1fr] gap-y-0.5 text-[12.5px] text-ink-soft">
+              <dt>Thaat</dt><dd className="text-ink">{info.thaat}</dd>
+              <dt>Prahar</dt><dd className="text-ink">{info.hour}</dd>
+              <dt>Mood</dt><dd className="text-ink">{info.mood}</dd>
+            </dl>
+          </div>
+        </>
+      )}
       <Heading>Tanpura</Heading>
       <div className="flex flex-wrap items-center gap-2">
         <Chip active={drone} onClick={toggleDrone}>{drone ? 'On' : 'Off'}</Chip>
@@ -177,6 +258,7 @@ function CalmSettings() {
 
 function FocusSection() {
   const stats = useStore(s => s.stats);
+  const goal = useStore(s => s.goal);
   return (
     <>
       <Heading>Your focus</Heading>
@@ -185,6 +267,15 @@ function FocusSection() {
         <StatCard value={hm(stats.week)} label="This week" />
         <StatCard value={String(stats.streak)} label="Day streak" />
       </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="mr-1 text-xs text-ink-soft">Daily goal</span>
+        {[0, 30, 60, 120, 180, 240].map(m => (
+          <Chip key={m} active={goal === m} onClick={() => setGoal(m)}>{m ? hm(m) : 'Off'}</Chip>
+        ))}
+      </div>
+      <button type="button" onClick={() => setHistory(true)} className="glass mt-3 h-10 rounded-full px-4 text-[13px] hover:bg-glass-strong">
+        Open history (H)
+      </button>
     </>
   );
 }
@@ -248,3 +339,138 @@ function WordsSection() {
   );
 }
 
+
+// ---------- focus and break cycles ----------
+
+function CycleSection() {
+  const c = useStore(s => s.cycle);
+  const minutes = useStore(s => s.minutes);
+  const breath = BREATHS.find(b => b.id === c.breathing);
+  return (
+    <>
+      <Heading>Focus &amp; breaks</Heading>
+      <div className="flex flex-wrap gap-2">
+        <Chip active={c.on} onClick={() => setCycle({ on: !c.on })}>{c.on ? 'Cycles on' : 'Cycles off'}</Chip>
+      </div>
+      <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+        {c.on
+          ? `Focus (${minutes || '—'} min, set on the timer), then a short break, with a long break every ${c.every}th round. Reset starts the cycle again.`
+          : 'Off: one plain timer, like a single sitting.'}
+      </p>
+      {c.on && (
+        <>
+          <Row label="Short break">
+            {[3, 5, 10].map(m => <Chip key={m} active={c.shortMin === m} onClick={() => setCycle({ shortMin: m })}>{m}m</Chip>)}
+          </Row>
+          <Row label="Long break">
+            {[10, 15, 20, 30].map(m => <Chip key={m} active={c.longMin === m} onClick={() => setCycle({ longMin: m })}>{m}m</Chip>)}
+          </Row>
+          <Row label="Long break every">
+            {[3, 4, 5, 6].map(n => <Chip key={n} active={c.every === n} onClick={() => setCycle({ every: n })}>{n}</Chip>)}
+          </Row>
+          <Row label="Breathing on breaks">
+            {BREATHS.map(b => <Chip key={b.id} active={c.breathing === b.id} onClick={() => setCycle({ breathing: b.id })}>{b.label}</Chip>)}
+            <Chip active={c.breathing === 'off'} onClick={() => setCycle({ breathing: 'off' })}>Off</Chip>
+          </Row>
+          {breath && <p className="mx-0.5 mt-2 text-[11.5px] text-ink-soft">{breath.hint}. The ring and the mandala grow and shrink with the breath.</p>}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Chip active={c.auto} onClick={() => setCycle({ auto: !c.auto })}>Start next automatically</Chip>
+            <Chip active={c.lookBack} onClick={() => setCycle({ lookBack: !c.lookBack })}>Look-back after focus</Chip>
+          </div>
+          <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+            Breaks use a softer palette, and a lighter sound: the tanpura alone for Raag, an open ambient mood otherwise. Press B to skip a break.
+          </p>
+        </>
+      )}
+    </>
+  );
+}
+
+// ---------- saved setups ----------
+
+function SetupSection() {
+  const setups = useStore(s => s.setups);
+  const [name, setName] = useState('');
+  const save = () => {
+    if (!name.trim()) return;
+    saveSetup(name);
+    setName('');
+  };
+  return (
+    <>
+      <Heading>Saved setups</Heading>
+      {setups.length === 0 && (
+        <p className="mx-0.5 mb-2 text-[11.5px] leading-relaxed text-ink-soft">
+          Keep the time, breaks, sound, colours, mandala and words together under a name, like “Deep work” or “Evening riyaz”.
+        </p>
+      )}
+      <ul className="flex flex-col gap-2">
+        {setups.map(u => (
+          <li key={u.id} className="glass flex items-center gap-2 rounded-2xl py-1.5 pl-4 pr-1.5">
+            <span className="min-w-0 flex-1 truncate text-[13px]">
+              {u.name}
+              <span className="ml-2 text-[11.5px] text-ink-soft">{u.minutes ? `${u.minutes}m` : '∞'} · {u.source === 'songs' ? 'songs' : u.source}</span>
+            </span>
+            <button type="button" onClick={() => applySetup(u.id)} className="h-8 rounded-full bg-ink px-3.5 text-[12.5px] text-bg">Use</button>
+            <button type="button" aria-label={`Delete ${u.name}`} onClick={() => deleteSetup(u.id)} className="grid size-8 place-items-center rounded-full text-ink-soft hover:bg-glass-strong">
+              <CloseIcon className="size-3.5" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 flex gap-2">
+        <input
+          type="text" value={name} maxLength={24} placeholder="Name for the current settings"
+          aria-label="Setup name" autoComplete="off"
+          onChange={e => setName(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') save(); }}
+          className={fieldClass}
+        />
+        <button type="button" onClick={save} disabled={!name.trim()} className="glass h-10 shrink-0 rounded-full px-4 text-[13px] hover:bg-glass-strong disabled:opacity-40">Save</button>
+      </div>
+      <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+        Using a setup resets the timer (a long enough session so far is still logged) and starts nothing. Saving under an existing name replaces it.
+      </p>
+    </>
+  );
+}
+
+// ---------- notification ----------
+
+function NotifySection() {
+  const on = useStore(s => s.notify);
+  const endMusic = useStore(s => s.endMusic);
+  const perm = notifyPermission();
+  return (
+    <>
+      <Heading>When a session ends</Heading>
+      <div className="flex flex-wrap gap-2">
+        <Chip active={endMusic} onClick={() => setEndMusic(!endMusic)}>{endMusic ? 'Music ends' : 'Music keeps playing'}</Chip>
+      </div>
+      <p className="mx-0.5 mb-3 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+        Whether Raag and Calm songs fade out when the time is up. Ambient sound always ends.
+      </p>
+      {perm !== 'unsupported' && (
+        <>
+          <div className="flex flex-wrap gap-2">
+            <Chip active={on} onClick={() => setNotify(!on)}>{on ? 'Notify me' : 'Notifications off'}</Chip>
+          </div>
+          <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+            {perm === 'denied'
+              ? 'The browser has blocked notifications for this site. Allow them in the site settings to hear about the end of a session while you are in another tab.'
+              : 'A quiet note when a session or break ends while this tab is hidden. The browser asks the first time you start a session.'}
+          </p>
+        </>
+      )}
+    </>
+  );
+}
+
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="mt-3">
+      <p className="mx-0.5 mb-1.5 text-xs text-ink-soft">{label}</p>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}

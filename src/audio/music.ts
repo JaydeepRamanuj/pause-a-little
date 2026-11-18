@@ -3,7 +3,7 @@
 // next is decided by the session controller in app/.
 
 import { mtof } from '../lib/util';
-import { getCtx, impulse } from './context';
+import { getCtx, impulse, resumeCtx } from './context';
 
 interface YTPlayer {
   setVolume(v: number): void;
@@ -128,6 +128,7 @@ export function ensureMusic() {
 /** Load a file and start it, silent at first. Remote files need CORS, or the browser mutes them. */
 export function fileStart(src: string, remote: boolean): Promise<void> {
   build();
+  void resumeCtx(); // the clock is suspended after a session ends; the file is silent until it runs
   if (remote) el.crossOrigin = 'anonymous'; else el.removeAttribute('crossorigin');
   el.src = src;
   music.gain.cancelScheduledValues(getCtx().currentTime);
@@ -161,6 +162,7 @@ export function fileProgress() {
 
 export function filePlay(): Promise<void> {
   build();
+  void resumeCtx();
   return el.play().then(() => undefined, () => undefined);
 }
 
@@ -335,6 +337,7 @@ export function setDroneKey(k: number) {
 
 export function droneStart(vol: number) {
   build();
+  void resumeCtx();
   if (droneLive) return;
   droneLive = true;
   dNext = getCtx().currentTime + .15; dStep = 0;
