@@ -169,7 +169,8 @@ function finish() {
   clearInterval(tickIv);
   const before = getState();
   const source = before.source;
-  soundStop(6);
+  // with "End music when time is up" off, music (Raag, Calm songs) keeps playing after the bell
+  soundStop(6, source !== "ambient" && !before.endMusic);
   if (source === "ambient") ambient.chime();
   else bell();
   try {

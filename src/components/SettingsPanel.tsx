@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { canInstall, install, subscribeInstall } from '../lib/pwa';
 import { LANGS } from '../data/words';
 import {
-  allTracks, applySetup, cancelSleep, deleteSetup, setLayer, startSleep, hm, notifyPermission, saveSetup, setClock, setCycle, setNotify, setGoal, setHistory, setClean, setCleanClock, setDroneKeyIndex, setMandalaSpin, setDroneVolume, setSheet,
+  allTracks, applySetup, cancelSleep, deleteSetup, setLayer, startSleep, hm, notifyPermission, saveSetup, setClock, setCycle, setNotify, setEndMusic, setGoal, setHistory, setClean, setCleanClock, setDroneKeyIndex, setMandalaSpin, setDroneVolume, setSheet,
   setShapeStyle, setSongVisual, setWords, toggleDrone, toggleLang,
 } from '../app/session';
 import { MANDALA_SPINS, useStore } from '../lib/store';
@@ -439,19 +439,29 @@ function SetupSection() {
 
 function NotifySection() {
   const on = useStore(s => s.notify);
+  const endMusic = useStore(s => s.endMusic);
   const perm = notifyPermission();
-  if (perm === 'unsupported') return null;
   return (
     <>
       <Heading>When a session ends</Heading>
       <div className="flex flex-wrap gap-2">
-        <Chip active={on} onClick={() => setNotify(!on)}>{on ? 'Notify me' : 'Notifications off'}</Chip>
+        <Chip active={endMusic} onClick={() => setEndMusic(!endMusic)}>{endMusic ? 'Music ends' : 'Music keeps playing'}</Chip>
       </div>
-      <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
-        {perm === 'denied'
-          ? 'The browser has blocked notifications for this site. Allow them in the site settings to hear about the end of a session while you are in another tab.'
-          : 'A quiet note when a session or break ends while this tab is hidden. The browser asks the first time you start a session.'}
+      <p className="mx-0.5 mb-3 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+        Whether Raag and Calm songs fade out when the time is up. Ambient sound always ends.
       </p>
+      {perm !== 'unsupported' && (
+        <>
+          <div className="flex flex-wrap gap-2">
+            <Chip active={on} onClick={() => setNotify(!on)}>{on ? 'Notify me' : 'Notifications off'}</Chip>
+          </div>
+          <p className="mx-0.5 mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+            {perm === 'denied'
+              ? 'The browser has blocked notifications for this site. Allow them in the site settings to hear about the end of a session while you are in another tab.'
+              : 'A quiet note when a session or break ends while this tab is hidden. The browser asks the first time you start a session.'}
+          </p>
+        </>
+      )}
     </>
   );
 }

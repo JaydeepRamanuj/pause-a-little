@@ -247,11 +247,13 @@ function musicResume() {
   if (cur && pendingSeek !== null) {
     const start = pendingSeek;
     pendingSeek = null;
+    fadingOut = false;
     if (cur.kind === "file") seekFile(cur, start);
     else seekYouTube(cur, start);
     return;
   }
   if (cur && all.some((t) => t.key === cur!.key)) {
+    fadingOut = false; // a track that was fading out for its end is playing again
     if (cur.kind === "file") {
       filePlay().then(() => fileFade(getState().musicVol, 2));
     } else {
@@ -433,13 +435,19 @@ function breakSoundStart(s: State) {
 }
 
 /** Stop everything that sounds, fading out over `fade` seconds. */
-export function soundStop(fade = 0.8) {
-  musicOn = false;
+export function soundStop(fade = 0.8, keepMusic = false) {
   ambient.stop(fade);
   layers.stop(fade);
+  if (keepMusic) return; // the music (and its tanpura) carries on; the audio clock stays running
+  musicOn = false;
   if (cur) musicPause(fade);
   droneStop(fade + 0.5);
   idleSoon(fade * 1000 + 400);
+}
+
+export function setEndMusic(on: boolean) {
+  persist("endMusic", on);
+  setState({ endMusic: on });
 }
 
 export function setSoundOn(on: boolean) {

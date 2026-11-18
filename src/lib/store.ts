@@ -114,6 +114,7 @@ export interface State {
   layers: LayerLevels; // the ambient layer mixer volumes
   sleepEnd: number | null; // when the sleep timer ends (not saved)
   notify: boolean; // tell me when a session ends while the tab is hidden
+  endMusic: boolean; // fade the music out when the time is up (on by default)
   goal: number; // daily focus goal in minutes (0 = none)
   songsOpen: boolean; // the Songs panel
   shapeStyle: ShapeStyle; // the abstract art for Ambient
@@ -195,6 +196,7 @@ export const initialState: State = {
   layers: normalizeLayers(load<unknown>('drift:layers', {})),
   sleepEnd: null,
   notify: load('drift:notify', true),
+  endMusic: load('drift:endMusic', true),
   goal: Math.max(0, Math.min(600, Math.round(Number(load('drift:goal', 120))) || 0)),
   songsOpen: false,
   shapeStyle: SHAPE_STYLES.includes(load('drift:shapeStyle', 'orbs') as ShapeStyle) ? load<ShapeStyle>('drift:shapeStyle', 'orbs') : 'orbs',
@@ -256,6 +258,7 @@ export const persistKeys = {
   setups: 'drift:setups',
   layers: 'drift:layers',
   notify: 'drift:notify',
+  endMusic: 'drift:endMusic',
   notifyAsked: 'drift:notifyAsked',
   words: 'drift:words',
 } as const;
